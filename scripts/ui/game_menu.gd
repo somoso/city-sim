@@ -14,6 +14,8 @@ func _ready() -> void:
 	visible = false
 	custom_minimum_size = Vector2(380, 0)
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	grow_horizontal = Control.GROW_DIRECTION_BOTH
+	grow_vertical = Control.GROW_DIRECTION_BOTH
 	var margin := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
 		margin.add_theme_constant_override(side, 14)

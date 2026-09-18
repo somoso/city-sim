@@ -36,8 +36,8 @@ func _process(_delta: float) -> void:
 			game.apply_tool_at(Constants.Tool.ZONE_R_MED, x, y + 1, x + 4, y + 2)
 			game.apply_tool_at(Constants.Tool.ZONE_C_HIGH, x + 5, y + 1, x + 9, y + 2)
 			game.apply_tool_at(Constants.Tool.ZONE_I_LOW, x, y + 3, x + 9, y + 4)
-			game.apply_tool_at(Constants.Tool.POWER_WIND, x, y - 1, 0, 0)
-			game.apply_tool_at(Constants.Tool.WATER_TOWER, x + 1, y - 1, 0, 0)
+			game.apply_tool_at(Constants.Tool.POWER_COAL, x, y - 2, 0, 0)
+			game.apply_tool_at(Constants.Tool.WATER_TOWER, x + 2, y - 1, 0, 0)
 			game.apply_tool_at(Constants.Tool.POLICE, x + 3, y - 2, 0, 0)
 			game.apply_tool_at(Constants.Tool.PARK, x + 6, y - 1, 0, 0)
 			GameState.set_speed(3)
@@ -57,7 +57,9 @@ func _process(_delta: float) -> void:
 		8:
 			for m in range(24):
 				GameState.tick_month()
-			check(GameState.population > 0, "population after 2 years: %d" % GameState.population)
+			check(GameState.population > 0, "population after 2 years: %d (power %d/%d, water %d/%d)" % [
+				GameState.population, int(GameState.power_demand), int(GameState.power_supply),
+				int(GameState.water_demand), int(GameState.water_supply)])
 			game.hud.budget_panel.toggle()
 			game.hud.menu_panel.toggle()
 			check(GameState.speed == 0, "menu pauses the game")

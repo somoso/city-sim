@@ -10,7 +10,11 @@ var selected := -1
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-	position = Vector2(10, -170)
+	offset_left = 10
+	offset_right = 270
+	offset_top = -180
+	offset_bottom = -180
+	grow_vertical = Control.GROW_DIRECTION_END
 	custom_minimum_size = Vector2(260, 0)
 	visible = false
 	var margin := MarginContainer.new()

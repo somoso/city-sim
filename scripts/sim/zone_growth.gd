@@ -52,7 +52,7 @@ static func run(grid: CityGrid, state, rng: RandomNumberGenerator) -> Dictionary
 		elif grid.level[i] > 0:
 			var p_decay := 0.0
 			if not serviced:
-				p_decay = 0.20
+				p_decay = 0.12
 			elif demand < -30.0:
 				p_decay = (-demand - 30.0) / 70.0 * 0.12
 			if z == Constants.Zone.RES and grid.crime[i] > 70.0:

@@ -29,6 +29,10 @@ static func _label_components(grid: CityGrid) -> void:
 		next_id += 1
 
 
+## Lots up to this many tiles from a road (through same-zone lots) count as connected.
+const ACCESS_DEPTH := 2
+
+
 static func _compute_access_and_commute(grid: CityGrid) -> void:
 	grid.road_access.fill(0)
 	grid.commute.fill(0.0)
@@ -37,15 +41,34 @@ static func _compute_access_and_commute(grid: CityGrid) -> void:
 	var tile_comp := PackedInt32Array()
 	tile_comp.resize(grid.size)
 	tile_comp.fill(-1)
+	var depth := PackedInt32Array()
+	depth.resize(grid.size)
+	depth.fill(0)
 
+	# Depth 1: directly adjacent to a road.
 	for i in range(grid.size):
 		if grid.zone_type[i] == Constants.Zone.NONE:
 			continue
 		for n in grid.neighbors4(i):
 			if grid.is_road(n):
 				grid.road_access[i] = 1
+				depth[i] = 1
 				tile_comp[i] = grid.road_comp[n]
 				break
+
+	# Deeper lots reach the road through a connected lot of the same zone type.
+	for d in range(2, ACCESS_DEPTH + 1):
+		for i in range(grid.size):
+			if grid.zone_type[i] == Constants.Zone.NONE or grid.road_access[i] == 1:
+				continue
+			for n in grid.neighbors4(i):
+				if depth[n] == d - 1 and grid.zone_type[n] == grid.zone_type[i]:
+					grid.road_access[i] = 1
+					depth[i] = d
+					tile_comp[i] = tile_comp[n]
+					break
+
+	for i in range(grid.size):
 		if grid.road_access[i] == 1:
 			var c := tile_comp[i]
 			comp_pop[c] = comp_pop.get(c, 0) + grid.population[i]
@@ -75,6 +98,14 @@ static func _compute_traffic(grid: CityGrid) -> void:
 		for n in grid.neighbors4(i):
 			if grid.is_road(n):
 				roads.append(n)
+		if roads.is_empty():
+			# Deeper lots send their trips through the roads next to neighbouring lots.
+			for n in grid.neighbors4(i):
+				if grid.zone_type[n] == Constants.Zone.NONE:
+					continue
+				for m in grid.neighbors4(n):
+					if grid.is_road(m):
+						roads.append(m)
 		if roads.is_empty():
 			continue
 		var share := trips / float(roads.size())

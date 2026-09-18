@@ -67,6 +67,8 @@ func _ready() -> void:
 	Events.funds_changed.connect(func(_f: int) -> void: _refresh_stats())
 	Events.speed_changed.connect(_refresh_speed)
 	Events.tool_changed.connect(_refresh_tool)
+	Events.overlay_changed.connect(func(o: int) -> void:
+		overlay_select.select(overlay_select.get_item_index(o)))
 	Events.message.connect(_show_news)
 	Events.city_started.connect(_refresh_all)
 	_refresh_all()
@@ -83,6 +85,9 @@ func _panel(preset: int) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_STOP
 	p.set_anchors_and_offsets_preset(preset)
+	# Panels anchored to the bottom edge must grow upward to stay on screen.
+	if preset == Control.PRESET_BOTTOM_WIDE:
+		p.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	return p
 
 
@@ -252,8 +257,10 @@ func _build_overlay_picker() -> void:
 	overlay_select.item_selected.connect(func(idx: int) -> void:
 		GameState.set_overlay(overlay_select.get_item_id(idx)))
 	overlay_select.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	overlay_select.position = Vector2(-190, 44)
-	overlay_select.size = Vector2(180, 30)
+	overlay_select.offset_left = -190
+	overlay_select.offset_right = -10
+	overlay_select.offset_top = 44
+	overlay_select.offset_bottom = 74
 	overlay_select.tooltip_text = "Data view"
 	add_child(overlay_select)
 

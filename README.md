@@ -8,6 +8,10 @@ the treasury in the black while the city grows.
 All graphics are drawn procedurally at runtime: there are no external art assets, so the
 project opens and runs from a plain checkout.
 
+![A grown city with residential, commercial and industrial districts](docs/screenshots/city.png)
+
+![Budget panel, tile info and a zoning drag preview](docs/screenshots/ui.png)
+
 ## Running the game
 
 1. Install [Godot 4.5](https://godotengine.org/download) (the standard build; .NET is not needed).
@@ -104,6 +108,13 @@ godot --headless --path . tests/scene_smoke_test.tscn
 ```
 
 Both exit with code 0 on success and print `ALL ... CHECKS PASSED`.
+
+`tests/screenshot_capture.tscn` builds a demo town and saves screenshots; it needs a display
+(or `xvfb-run`) because it renders for real:
+
+```sh
+xvfb-run -a godot --path . --resolution 1280x720 tests/screenshot_capture.tscn -- --out=/tmp/shots
+```
 
 ## Ideas for what comes next
 
