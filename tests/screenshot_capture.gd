@@ -8,6 +8,7 @@ var frames := 0
 var game: Node2D
 var out_dir := "user://screenshots"
 var shot := 0
+var town_origin := Vector2i.ZERO
 
 
 func _ready() -> void:
@@ -43,6 +44,7 @@ func _build_town() -> void:
 		origin = TerrainGenerator.find_start_tile(grid)
 	var ox := origin.x
 	var oy := origin.y
+	town_origin = origin
 	GameState.funds = 200000
 	var T := Constants.Tool
 	# Grid of roads.
@@ -72,7 +74,7 @@ func _build_town() -> void:
 	game.apply_tool_at(T.PARK, ox + 19, oy + 1, 0, 0)
 	game.apply_tool_at(T.HOSPITAL, ox + 1, oy + 15, 0, 0)
 	game.camera.focus_tile(Vector2i(ox + 10, oy + 8))
-	game.camera.zoom = Vector2(1.0, 1.0)
+	game.camera.zoom = Vector2(0.5, 0.5)
 	GameState.set_speed(0)
 
 
@@ -96,17 +98,15 @@ func _process(_delta: float) -> void:
 			print("after 4 years: pop %d jobs %d funds %d" % [GameState.population, GameState.jobs_total, GameState.funds])
 		14:
 			_save_shot("02_grown_city")
-			GameState.set_overlay(Constants.Overlay.LAND_VALUE)
+			GameState.set_overlay(Constants.Overlay.WATER)
 		18:
-			_save_shot("03_land_value_overlay")
+			_save_shot("03_water_overlay")
 			GameState.set_overlay(Constants.Overlay.NONE)
-			GameState.set_tool(Constants.Tool.HOSPITAL)
-			game.cursor_layer.set_hover(Vector2i(32, 40))
-			Events.tile_selected.emit(GameState.grid.idx(20, 20))
+			Events.tile_selected.emit(GameState.grid.idx(town_origin.x + 2, town_origin.y + 4))
 			game.hud.budget_panel.toggle()
 			GameState.set_tool(Constants.Tool.ZONE_R_HIGH)
-			game.cursor_layer.set_hover(Vector2i(30, 44))
-			game.cursor_layer.begin_drag(Vector2i(26, 40))
+			game.cursor_layer.begin_drag(Vector2i(town_origin.x + 2, town_origin.y + 18))
+			game.cursor_layer.set_hover(Vector2i(town_origin.x + 9, town_origin.y + 23))
 		22:
 			_save_shot("04_ui_panels")
 			game.hud.close_panels()

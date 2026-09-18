@@ -2,9 +2,13 @@ class_name Constants
 extends RefCounted
 ## Shared enums and tuning constants used across the simulation, renderer and UI.
 
-const TILE_W := 64
-const TILE_H := 32
+const TILE_W := 128
+const TILE_H := 64
 const CHUNK_SIZE := 16
+
+## Zoned lots up to this many tiles from a road (through lots of the same zone type) count
+## as road-connected. The zone tool refuses lots further away than this.
+const ACCESS_DEPTH := 2
 
 const START_YEAR := 2000
 const START_FUNDS := 50000

@@ -81,6 +81,27 @@ func _ready() -> void:
 			zoned += 1
 	check(zoned > 40, "zones placed (%d)" % zoned)
 
+	# Zoning far from any road must be refused, and the preview must agree.
+	var far_reach := tools.zone_reachability(Constants.Tool.ZONE_R_LOW, ox + 2, oy + 13, ox + 6, oy + 15)
+	var far_ok := 0
+	for v in far_reach.values():
+		if v:
+			far_ok += 1
+	check(far_reach.size() > 0 and far_ok == 0, "lots far from roads are unreachable in preview (%d/%d)" % [far_ok, far_reach.size()])
+	var far_placed := tools.apply_area(Constants.Tool.ZONE_R_LOW, ox + 2, oy + 13, ox + 6, oy + 15)
+	check(far_placed == 0, "zone tool skipped unreachable lots (%d placed)" % far_placed)
+	# Two rows next to a road are fine: row 1 touches it, row 2 reaches through row 1.
+	var near_reach := tools.zone_reachability(Constants.Tool.ZONE_C_LOW, ox + 12, oy + 10, ox + 14, oy + 11)
+	var near_ok := 0
+	for v in near_reach.values():
+		if v:
+			near_ok += 1
+	check(near_ok == near_reach.size() and near_ok > 0, "lots within two tiles of a road are reachable (%d)" % near_ok)
+	for i in range(grid.size):
+		if grid.zone_type[i] != Constants.Zone.NONE and grid.road_access[i] == 0:
+			check(false, "a zoned lot has no road access after zoning")
+			break
+
 	var funds_before := GameState.funds
 	for m in range(60):
 		GameState.tick_month()

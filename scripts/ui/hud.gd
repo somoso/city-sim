@@ -44,6 +44,22 @@ var overlay_select: OptionButton
 
 var news_label: Label
 var news_timer: Timer
+var overlay_legend: Label
+
+const OVERLAY_LEGENDS := {
+	Constants.Overlay.ZONES: "Green: residential. Blue: commercial. Yellow: industrial.",
+	Constants.Overlay.POWER: "Yellow wires under roads carry power. Red: no power reaches here.\nRings mark power plants. Lots tinted red are unpowered.",
+	Constants.Overlay.WATER: "Blue pipes under roads carry water from pumps and towers.\nRed pipes are dry. Rings mark water sources. Red lots have no water.",
+	Constants.Overlay.LAND_VALUE: "Green: high land value. Red: low. Parks, water and services raise it;\npollution, crime and industry lower it.",
+	Constants.Overlay.POLLUTION: "Darker brown means more pollution (industry, coal, traffic).",
+	Constants.Overlay.CRIME: "Darker red means more crime. Police coverage reduces it.",
+	Constants.Overlay.TRAFFIC: "Roads from green (quiet) to red (congested).",
+	Constants.Overlay.FIRE_RISK: "Yellow to red: rising fire risk. Fire stations lower it.",
+	Constants.Overlay.POLICE: "Blue: police coverage. Grey: unprotected.",
+	Constants.Overlay.FIRE: "Orange: fire station coverage. Grey: unprotected.",
+	Constants.Overlay.EDUCATION: "Orange: school coverage. Grey: no schools nearby.",
+	Constants.Overlay.HEALTH: "White: hospital coverage. Grey: no hospital nearby.",
+}
 
 var info_panel: InfoPanel
 var budget_panel: BudgetPanel
@@ -68,7 +84,8 @@ func _ready() -> void:
 	Events.speed_changed.connect(_refresh_speed)
 	Events.tool_changed.connect(_refresh_tool)
 	Events.overlay_changed.connect(func(o: int) -> void:
-		overlay_select.select(overlay_select.get_item_index(o)))
+		overlay_select.select(overlay_select.get_item_index(o))
+		overlay_legend.text = OVERLAY_LEGENDS.get(o, ""))
 	Events.message.connect(_show_news)
 	Events.city_started.connect(_refresh_all)
 	_refresh_all()
@@ -241,7 +258,7 @@ func _tool_tooltip(t: int) -> String:
 			s += "\nCoverage radius %d tiles" % def["radius"]
 		return s
 	if BuildingDefs.tool_is_zone(t):
-		return "%s\n$%d per tile. Needs a road next to it plus power and water to develop." % [name, BuildingDefs.tool_cost(t)]
+		return "%s\n$%d per tile. Lots must be within %d tiles of a road, and need power and water to develop." % [name, BuildingDefs.tool_cost(t), Constants.ACCESS_DEPTH]
 	match t:
 		T.BULLDOZE: return "Bulldoze\nRemoves buildings, development, rubble, trees or empty zones. $%d per tile." % BuildingDefs.BULLDOZE_COST
 		T.DEZONE: return "De-zone\nRemoves zoning from undeveloped lots. Free."
@@ -263,6 +280,20 @@ func _build_overlay_picker() -> void:
 	overlay_select.offset_bottom = 74
 	overlay_select.tooltip_text = "Data view"
 	add_child(overlay_select)
+	overlay_legend = Label.new()
+	overlay_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay_legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	overlay_legend.add_theme_font_size_override("font_size", 13)
+	overlay_legend.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
+	overlay_legend.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	overlay_legend.add_theme_constant_override("shadow_offset_x", 1)
+	overlay_legend.add_theme_constant_override("shadow_offset_y", 1)
+	overlay_legend.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	overlay_legend.offset_left = -520
+	overlay_legend.offset_right = -10
+	overlay_legend.offset_top = 80
+	overlay_legend.offset_bottom = 120
+	add_child(overlay_legend)
 
 
 func _build_news() -> void:
@@ -292,6 +323,7 @@ func _refresh_all() -> void:
 	_refresh_speed(GameState.speed)
 	_refresh_tool(GameState.current_tool)
 	overlay_select.select(overlay_select.get_item_index(GameState.current_overlay))
+	overlay_legend.text = OVERLAY_LEGENDS.get(GameState.current_overlay, "")
 	if not GameState.news.is_empty():
 		_show_news(GameState.news[GameState.news.size() - 1])
 

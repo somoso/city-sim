@@ -38,6 +38,7 @@ func _setup_city() -> void:
 	cursor_layer.setup(grid, tools)
 	camera.set_map_bounds(grid)
 	camera.focus_tile(TerrainGenerator.find_start_tile(grid))
+	camera.zoom = Vector2(0.6, 0.6)
 	_accum = 0.0
 	_dragging = false
 

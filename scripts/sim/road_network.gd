@@ -29,10 +29,6 @@ static func _label_components(grid: CityGrid) -> void:
 		next_id += 1
 
 
-## Lots up to this many tiles from a road (through same-zone lots) count as connected.
-const ACCESS_DEPTH := 2
-
-
 static func _compute_access_and_commute(grid: CityGrid) -> void:
 	grid.road_access.fill(0)
 	grid.commute.fill(0.0)
@@ -57,7 +53,7 @@ static func _compute_access_and_commute(grid: CityGrid) -> void:
 				break
 
 	# Deeper lots reach the road through a connected lot of the same zone type.
-	for d in range(2, ACCESS_DEPTH + 1):
+	for d in range(2, Constants.ACCESS_DEPTH + 1):
 		for i in range(grid.size):
 			if grid.zone_type[i] == Constants.Zone.NONE or grid.road_access[i] == 1:
 				continue

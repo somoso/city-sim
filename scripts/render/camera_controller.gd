@@ -2,7 +2,7 @@ class_name CameraController
 extends Camera2D
 ## Keyboard and mouse camera: WASD/arrows pan, wheel zooms, middle or right drag pans.
 
-const PAN_SPEED := 900.0
+const PAN_SPEED := 1500.0
 const ZOOM_MIN := 0.35
 const ZOOM_MAX := 3.0
 

@@ -39,15 +39,89 @@ func can_apply_at(tool: int, x: int, y: int) -> bool:
 	return false
 
 
-## Cost of applying `tool` to a rectangle, counting only tiles where it is legal.
+## Cost of applying `tool` to a rectangle, counting only tiles where it is legal (and, for
+## zone tools, reachable from a road).
 func area_cost(tool: int, x0: int, y0: int, x1: int, y1: int) -> int:
 	var per := BuildingDefs.tool_cost(tool)
 	var count := 0
+	if BuildingDefs.tool_is_zone(tool):
+		for reachable in zone_reachability(tool, x0, y0, x1, y1).values():
+			if reachable:
+				count += 1
+		return per * count
 	for y in range(mini(y0, y1), maxi(y0, y1) + 1):
 		for x in range(mini(x0, x1), maxi(x0, x1) + 1):
 			if can_apply_at(tool, x, y):
 				count += 1
 	return per * count
+
+
+## For a zone tool over a rectangle, returns {tile index: bool} for every tile the tool
+## could legally zone, where true means the lot would be within Constants.ACCESS_DEPTH
+## tiles of a road (counting paths through lots of the same zone type, including the ones
+## being zoned right now). Lots marked false are skipped by apply_area.
+func zone_reachability(tool: int, x0: int, y0: int, x1: int, y1: int) -> Dictionary:
+	var grid := _grid()
+	var result := {}
+	if grid == null or not BuildingDefs.tool_is_zone(tool):
+		return result
+	var zone: int = BuildingDefs.TOOL_ZONE[tool][0]
+	var rx0 := mini(x0, x1)
+	var rx1 := maxi(x0, x1)
+	var ry0 := mini(y0, y1)
+	var ry1 := maxi(y0, y1)
+	for y in range(ry0, ry1 + 1):
+		for x in range(rx0, rx1 + 1):
+			if can_apply_at(tool, x, y):
+				result[grid.idx(x, y)] = false
+	if result.is_empty():
+		return result
+
+	var depth_limit := Constants.ACCESS_DEPTH
+	# Search a margin around the rectangle so existing lots can bridge to a road.
+	var ex0 := maxi(0, rx0 - depth_limit)
+	var ex1 := mini(grid.width - 1, rx1 + depth_limit)
+	var ey0 := maxi(0, ry0 - depth_limit)
+	var ey1 := mini(grid.height - 1, ry1 + depth_limit)
+
+	var depth := {}
+	var frontier := PackedInt32Array()
+	for y in range(ey0, ey1 + 1):
+		for x in range(ex0, ex1 + 1):
+			var i := grid.idx(x, y)
+			if not _passable_for_zone(i, zone, result):
+				continue
+			for n in grid.neighbors4(i):
+				if grid.is_road(n):
+					depth[i] = 1
+					frontier.append(i)
+					break
+	var d := 1
+	while d < depth_limit and not frontier.is_empty():
+		var next := PackedInt32Array()
+		for i in frontier:
+			for n in grid.neighbors4(i):
+				if depth.has(n):
+					continue
+				var nx := grid.x_of(n)
+				var ny := grid.y_of(n)
+				if nx < ex0 or nx > ex1 or ny < ey0 or ny > ey1:
+					continue
+				if _passable_for_zone(n, zone, result):
+					depth[n] = d + 1
+					next.append(n)
+		frontier = next
+		d += 1
+	for i in result.keys():
+		result[i] = depth.has(i)
+	return result
+
+
+func _passable_for_zone(i: int, zone: int, candidates: Dictionary) -> bool:
+	if candidates.has(i):
+		return true
+	var grid := _grid()
+	return grid.zone_type[i] == zone and grid.building[i] == B.NONE
 
 
 ## Tiles an L-shaped road drag would touch (horizontal first, then vertical).
@@ -78,13 +152,22 @@ func line_cost(tool: int, x0: int, y0: int, x1: int, y1: int) -> int:
 
 
 ## Applies an area tool over a rectangle. Returns the number of tiles changed.
+## Zone tools skip lots that could never be reached from a road.
 func apply_area(tool: int, x0: int, y0: int, x1: int, y1: int) -> int:
 	var changed := PackedInt32Array()
 	var grid := _grid()
 	var per := BuildingDefs.tool_cost(tool)
+	var reach := {}
+	var is_zone := BuildingDefs.tool_is_zone(tool)
+	if is_zone:
+		reach = zone_reachability(tool, x0, y0, x1, y1)
+	var skipped := 0
 	for y in range(mini(y0, y1), maxi(y0, y1) + 1):
 		for x in range(mini(x0, x1), maxi(x0, x1) + 1):
 			if not can_apply_at(tool, x, y):
+				continue
+			if is_zone and not reach.get(grid.idx(x, y), false):
+				skipped += 1
 				continue
 			if per > 0 and GameState.funds < per:
 				GameState.post_message("Not enough funds.")
@@ -95,6 +178,9 @@ func apply_area(tool: int, x0: int, y0: int, x1: int, y1: int) -> int:
 			if per > 0:
 				GameState.spend(per)
 			changed.append(i)
+	if skipped > 0:
+		GameState.post_message("%d lot%s skipped: zones must be within %d tiles of a road." % [
+			skipped, "" if skipped == 1 else "s", Constants.ACCESS_DEPTH])
 	_finish(changed)
 	return changed.size()
 
