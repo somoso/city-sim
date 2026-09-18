@@ -1,6 +1,6 @@
 # City Sim
 
-An isometric city-building simulation game built with **Godot 4.5** and GDScript, in the
+An isometric city-building simulation game built with **Godot 4.7** and GDScript, in the
 spirit of SimCity 4. Lay roads, zone land for residents, shops and factories, keep the
 lights on and the taps running, fund police, fire, schools and hospitals, and try to keep
 the treasury in the black while the city grows.
@@ -16,7 +16,7 @@ the project has no third-party art and opens and runs from a plain checkout.
 
 ## Running the game
 
-1. Install [Godot 4.5](https://godotengine.org/download) (the standard build; .NET is not needed).
+1. Install [Godot 4.7](https://godotengine.org/download) (the standard build; .NET is not needed).
 2. Open the Godot project manager, choose **Import**, and select `project.godot` in this folder.
 3. Press **F5** (Run Project). The main menu lets you name your city, pick a map size and
    seed, and decide whether random disasters are enabled (off by default).

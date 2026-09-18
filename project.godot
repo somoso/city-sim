@@ -13,7 +13,7 @@ config_version=5
 config/name="City Sim"
 config/description="An isometric city-building simulation inspired by SimCity 4."
 run/main_scene="res://scenes/main_menu.tscn"
-config/features=PackedStringArray("4.5", "GL Compatibility")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
