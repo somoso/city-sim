@@ -1,10 +1,10 @@
 class_name WorldLayer
 extends ChunkedLayer
 ## Draws everything the player builds using the generated sprites: zone lots, roads,
-## developed buildings, civic buildings, rubble, fire, and the status icons that flag lots
-## missing road access, power or water.
-
-const ICON_SPACING := 46.0
+## developed buildings, civic buildings, rubble and fire.
+##
+## Warnings about missing road access, power or water are drawn by AlertsLayer instead,
+## because they flash and this layer only redraws chunks that changed.
 
 
 func draw_chunk(chunk: Node2D, rect: Rect2i) -> void:
@@ -50,12 +50,10 @@ func _draw_road(ci: CanvasItem, x: int, y: int, i: int) -> void:
 func _draw_zone(ci: CanvasItem, x: int, y: int, i: int) -> void:
 	var z := grid.zone_type[i]
 	var lvl := grid.level[i]
-	var rect: Rect2
 	if lvl == 0:
-		rect = Sprites.draw(ci, Sprites.lot_sprite(z, grid.zone_density[i]), x, y)
+		Sprites.draw(ci, Sprites.lot_sprite(z, grid.zone_density[i]), x, y)
 	else:
-		rect = Sprites.draw(ci, Sprites.zone_sprite(z, grid.zone_density[i], lvl, grid.wealth[i]), x, y)
-	_draw_status_icons(ci, x, y, i, rect)
+		Sprites.draw(ci, Sprites.zone_sprite(z, grid.zone_density[i], lvl, grid.wealth[i]), x, y)
 
 
 func _draw_civic(ci: CanvasItem, x: int, y: int, i: int) -> void:
@@ -69,50 +67,9 @@ func _draw_civic(ci: CanvasItem, x: int, y: int, i: int) -> void:
 	# Draw the whole footprint once, when the painter reaches its front-most tile.
 	if x != ox + fsize - 1 or y != oy + fsize - 1:
 		return
-	var rect := Sprites.draw(ci, Sprites.civic_sprite(type), ox, oy, fsize)
+	Sprites.draw(ci, Sprites.civic_sprite(type), ox, oy, fsize)
 	if grid.burning[origin] > 0:
 		_draw_fire(ci, ox, oy, origin, fsize)
-	var icons: Array[String] = []
-	if BuildingDefs.def_value(type, "power_use", 0) > 0 and grid.powered[origin] == 0:
-		icons.append("icon_no_power")
-	if BuildingDefs.def_value(type, "water_use", 0) > 0 and grid.watered[origin] == 0:
-		icons.append("icon_no_water")
-	if BuildingDefs.def_value(type, "needs_water", false):
-		var ok := false
-		for f in grid.footprint_of(origin):
-			if grid.has_water_neighbor(f):
-				ok = true
-		if not ok:
-			icons.append("icon_no_water")
-	if not icons.is_empty():
-		# The footprint diamond is horizontally centred on its origin tile's top corner.
-		var top := IsoMath.tile_to_screen(ox, oy)
-		_draw_icon_row(ci, icons, Vector2(top.x, rect.position.y + 10.0))
-
-
-func _draw_status_icons(ci: CanvasItem, x: int, y: int, i: int, rect: Rect2) -> void:
-	var icons: Array[String] = []
-	if grid.road_access[i] == 0:
-		icons.append("icon_no_road")
-	if grid.level[i] > 0:
-		if grid.powered[i] == 0:
-			icons.append("icon_no_power")
-		if grid.watered[i] == 0:
-			icons.append("icon_no_water")
-	if icons.is_empty():
-		return
-	var top := IsoMath.tile_to_screen(x, y)
-	var icon_y := rect.position.y + 6.0 if rect.size.y > 0.0 else top.y - 20.0
-	if grid.level[i] == 0:
-		icon_y = top.y + IsoMath.HH - 14.0
-	_draw_icon_row(ci, icons, Vector2(top.x, icon_y))
-
-
-func _draw_icon_row(ci: CanvasItem, icons: Array[String], center: Vector2) -> void:
-	var n := icons.size()
-	for k in range(n):
-		var offset := (float(k) - float(n - 1) * 0.5) * ICON_SPACING
-		Sprites.draw_centered(ci, icons[k], center + Vector2(offset, 0.0))
 
 
 func _draw_fire(ci: CanvasItem, x: int, y: int, i: int, fsize: int = 1) -> void:

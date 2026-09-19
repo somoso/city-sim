@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cht1f0savo7dx"
-path="res://.godot/imported/icon_no_road.png-574372b94524d00137d8b918e5624777.ctex"
+uid="uid://1dir2o42ablw"
+path="res://.godot/imported/alert_power_hot.png-46a917479f2ed8eca698f2e93ae1f8b6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/icon_no_road.png"
-dest_files=["res://.godot/imported/icon_no_road.png-574372b94524d00137d8b918e5624777.ctex"]
+source_file="res://assets/sprites/alert_power_hot.png"
+dest_files=["res://.godot/imported/alert_power_hot.png-46a917479f2ed8eca698f2e93ae1f8b6.ctex"]
 
 [params]
 

@@ -10,6 +10,8 @@ the project has no third-party art and opens and runs from a plain checkout.
 
 ![A grown city with residential, commercial and industrial districts](docs/screenshots/city.png)
 
+![Freshly zoned blocks flashing "no electricity" and "no water" warnings](docs/screenshots/alerts.png)
+
 ![The water overlay showing pipes under roads and dry lots](docs/screenshots/water.png)
 
 ![Budget panel, tile info and a zoning drag preview](docs/screenshots/ui.png)
@@ -57,14 +59,28 @@ godot --path /path/to/city-sim
    (top right) to see power, water, land value, pollution, crime, traffic, fire risk and
    service coverage.
 
-Icons float above a lot when it is missing something: a crossed-out road for no road
-access, a yellow bolt for no power, a blue drop for no water. Utility and civic buildings
-show the same icons when they lack what they need (a pump away from water, for instance).
+### When a zone does nothing
+
+A lot that is zoned but has no electricity, no water or no road will never develop, so the
+game says so loudly instead of leaving you guessing:
+
+- Every affected lot gets a **pulsing red outline**, so you can see how far the problem spreads.
+- A **flashing alert badge** floats above each contiguous block, one per problem: a yellow
+  bolt for no electricity, a blue drop for no water, a crossed-out road for no road access.
+  A badge covering more than one lot carries a count, such as `x27`.
+- A **Problems banner** in the top-left lists the totals. Click a line to jump the camera to
+  an affected lot; click again to tour the rest.
+
+Utility and civic buildings raise the same warnings when they lack what they need, including
+a water pump built away from water. Road access takes priority: while a lot has no road, that
+is the only warning it shows, because power and water travel along roads anyway.
 
 ## Simulation overview
 
 Every simulated month the following systems run in order (see `scripts/sim/simulation.gd`):
 
+- **Alerts** – `scripts/sim/alerts.gd` turns the service maps into per-tile warning flags
+  and totals, which drive both the in-world badges and the HUD banner.
 - **Road network** – flood-fills road components, marks which lots have road access (up to
   two tiles deep through lots of the same zone), and estimates job accessibility for
   residents. Traffic is spread along roads from nearby lots.
@@ -91,7 +107,8 @@ footprint diamond is flush with the bottom edge, so a sprite with an `s x s` foo
 `128 * s` pixels wide and as tall as the building needs. `tools/generate_sprites.py`
 (standard library only) draws all of them: terrain variants, 16 road connection pieces,
 zone lots, 27 building variants per zone type (density x level x wealth), the civic
-buildings, rubble, fire, smoke and the status icons. Edit the generator and re-run it to
+buildings, rubble, fire, smoke and the alert badges (a resting and a brighter "hot" frame
+per problem, cross-faded at runtime to make them flash). Edit the generator and re-run it to
 change the look of the game:
 
 ```sh
@@ -112,7 +129,8 @@ scripts/
   core/                  Constants, BuildingDefs catalogue, CityGrid data model, TerrainGenerator
   sim/                   One file per simulation system plus the Simulation orchestrator
   game/                  GameController (input, clock) and BuildTools (applying tools)
-  render/                IsoMath, Sprites loader, chunked terrain/world/overlay layers, cursor, camera
+  render/                IsoMath, Sprites loader, chunked terrain/world/overlay layers,
+                         alerts, cursor, camera
   ui/                    HUD, RCI gauge, info panel, budget panel, in-game menu, main menu
 tests/                   Headless smoke tests (see below)
 ```

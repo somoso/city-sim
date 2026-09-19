@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dud3kw6wfdbvl"
-path="res://.godot/imported/icon_no_water.png-467889f596c11e15ae1494d3f142a9cb.ctex"
+uid="uid://due544lcmg3jk"
+path="res://.godot/imported/alert_water.png-e946065010d7450ff667c66a20c4b84e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/icon_no_water.png"
-dest_files=["res://.godot/imported/icon_no_water.png-467889f596c11e15ae1494d3f142a9cb.ctex"]
+source_file="res://assets/sprites/alert_water.png"
+dest_files=["res://.godot/imported/alert_water.png-e946065010d7450ff667c66a20c4b84e.ctex"]
 
 [params]
 

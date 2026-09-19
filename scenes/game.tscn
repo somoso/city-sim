@@ -1,12 +1,13 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/game_controller.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/render/terrain_layer.gd" id="2_terrain"]
 [ext_resource type="Script" path="res://scripts/render/world_layer.gd" id="3_world"]
 [ext_resource type="Script" path="res://scripts/render/overlay_layer.gd" id="4_overlay"]
-[ext_resource type="Script" path="res://scripts/render/cursor_layer.gd" id="5_cursor"]
-[ext_resource type="Script" path="res://scripts/render/camera_controller.gd" id="6_camera"]
-[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="7_hud"]
+[ext_resource type="Script" path="res://scripts/render/alerts_layer.gd" id="5_alerts"]
+[ext_resource type="Script" path="res://scripts/render/cursor_layer.gd" id="6_cursor"]
+[ext_resource type="Script" path="res://scripts/render/camera_controller.gd" id="7_camera"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="8_hud"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -22,11 +23,14 @@ script = ExtResource("3_world")
 [node name="OverlayLayer" type="Node2D" parent="World"]
 script = ExtResource("4_overlay")
 
+[node name="AlertsLayer" type="Node2D" parent="World"]
+script = ExtResource("5_alerts")
+
 [node name="CursorLayer" type="Node2D" parent="World"]
-script = ExtResource("5_cursor")
+script = ExtResource("6_cursor")
 
 [node name="Camera2D" type="Camera2D" parent="."]
-script = ExtResource("6_camera")
+script = ExtResource("7_camera")
 
 [node name="HUD" type="CanvasLayer" parent="."]
-script = ExtResource("7_hud")
+script = ExtResource("8_hud")

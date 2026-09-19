@@ -21,7 +21,7 @@ func _ready() -> void:
 	add_child(game)
 
 
-func _build_town() -> void:
+func _build_roads_and_zones() -> void:
 	var grid: CityGrid = GameState.grid
 	var origin := Vector2i(-1, -1)
 	# Find an all-land 22x18 block.
@@ -61,7 +61,17 @@ func _build_town() -> void:
 	game.apply_tool_at(T.ZONE_C_HIGH, ox + 11, oy + 7, ox + 19, oy + 9)
 	game.apply_tool_at(T.ZONE_I_LOW, ox + 16, oy + 3, ox + 19, oy + 5)
 	game.apply_tool_at(T.ZONE_I_MED, ox + 11, oy + 11, ox + 19, oy + 13)
-	# Utilities and services along the top road.
+	game.camera.focus_tile(Vector2i(ox + 10, oy + 8))
+	game.camera.zoom = Vector2(0.5, 0.5)
+	GameState.set_speed(0)
+
+
+## Utilities and services along the top road; separate so the shot above it can show the
+## city while it still has no power or water.
+func _build_utilities() -> void:
+	var ox := town_origin.x
+	var oy := town_origin.y
+	var T := Constants.Tool
 	game.apply_tool_at(T.POWER_COAL, ox + 1, oy, 0, 0)
 	game.apply_tool_at(T.WATER_TOWER, ox + 4, oy + 1, 0, 0)
 	game.apply_tool_at(T.WATER_TOWER, ox + 5, oy + 1, 0, 0)
@@ -73,9 +83,6 @@ func _build_town() -> void:
 	game.apply_tool_at(T.PARK, ox + 18, oy + 1, 0, 0)
 	game.apply_tool_at(T.PARK, ox + 19, oy + 1, 0, 0)
 	game.apply_tool_at(T.HOSPITAL, ox + 1, oy + 15, 0, 0)
-	game.camera.focus_tile(Vector2i(ox + 10, oy + 8))
-	game.camera.zoom = Vector2(0.5, 0.5)
-	GameState.set_speed(0)
 
 
 func _save_shot(name: String) -> void:
@@ -89,26 +96,36 @@ func _process(_delta: float) -> void:
 	frames += 1
 	match frames:
 		3:
-			_build_town()
+			_build_roads_and_zones()
 		8:
-			_save_shot("01_fresh_zones")
-		9:
+			# Roads and zones are down but nothing is supplied yet: every lot should be
+			# flashing a "no electricity" and "no water" badge.
+			_save_shot("00_missing_services")
+			game.camera.focus_tile(Vector2i(town_origin.x + 5, town_origin.y + 6))
+			game.camera.zoom = Vector2(1.1, 1.1)
+		11:
+			_save_shot("01_missing_services_close")
+			game.camera.focus_tile(Vector2i(town_origin.x + 10, town_origin.y + 8))
+			game.camera.zoom = Vector2(0.5, 0.5)
+			_build_utilities()
+		15:
+			_save_shot("02_serviced_zones")
 			for m in range(48):
 				GameState.tick_month()
 			print("after 4 years: pop %d jobs %d funds %d" % [GameState.population, GameState.jobs_total, GameState.funds])
-		14:
-			_save_shot("02_grown_city")
+		20:
+			_save_shot("03_grown_city")
 			GameState.set_overlay(Constants.Overlay.WATER)
-		18:
-			_save_shot("03_water_overlay")
+		24:
+			_save_shot("04_water_overlay")
 			GameState.set_overlay(Constants.Overlay.NONE)
 			Events.tile_selected.emit(GameState.grid.idx(town_origin.x + 2, town_origin.y + 4))
 			game.hud.budget_panel.toggle()
 			GameState.set_tool(Constants.Tool.ZONE_R_HIGH)
 			game.cursor_layer.begin_drag(Vector2i(town_origin.x + 2, town_origin.y + 18))
 			game.cursor_layer.set_hover(Vector2i(town_origin.x + 9, town_origin.y + 23))
-		22:
-			_save_shot("04_ui_panels")
+		28:
+			_save_shot("05_ui_panels")
 			game.hud.close_panels()
 			game.cursor_layer.end_drag()
 			GameState.set_tool(Constants.Tool.NONE)
@@ -116,19 +133,6 @@ func _process(_delta: float) -> void:
 			game.hud.menu_panel._trigger("fire")
 			for m in range(2):
 				GameState.tick_month()
-		26:
-			_save_shot("05_disaster")
-			game.cursor_layer.visible = false
-		28:
-			_save_shot("06_no_cursor")
-			game.cursor_layer.visible = true
-			game.hud.visible = false
-		30:
-			_save_shot("07_no_hud")
-			game.hud.visible = true
-			# Enlarged crop of the bottom-right corner for close inspection.
-			var img := get_viewport().get_texture().get_image()
-			var crop := img.get_region(Rect2i(960, 540, 320, 180))
-			crop.resize(960, 540, Image.INTERPOLATE_NEAREST)
-			crop.save_png("%s/08_crop_bottom_right.png" % out_dir)
+		32:
+			_save_shot("06_disaster")
 			get_tree().quit(0)

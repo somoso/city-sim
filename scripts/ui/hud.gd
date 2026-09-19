@@ -46,6 +46,18 @@ var news_label: Label
 var news_timer: Timer
 var overlay_legend: Label
 
+var alert_panel: PanelContainer
+var alert_style: StyleBoxFlat
+var alert_buttons := {}
+var _alert_time := 0.0
+
+## Wording and accent colour for each kind of shortage.
+const ALERT_INFO := {
+	"road": ["No road access: %d lot%s", Color(1.0, 0.72, 0.66)],
+	"power": ["No electricity: %d lot%s", Color(1.0, 0.86, 0.35)],
+	"water": ["No water: %d lot%s", Color(0.55, 0.80, 1.0)],
+}
+
 const OVERLAY_LEGENDS := {
 	Constants.Overlay.ZONES: "Green: residential. Blue: commercial. Yellow: industrial.",
 	Constants.Overlay.POWER: "Yellow wires under roads carry power. Red: no power reaches here.\nRings mark power plants. Lots tinted red are unpowered.",
@@ -72,6 +84,7 @@ func _ready() -> void:
 	_build_toolbar()
 	_build_overlay_picker()
 	_build_news()
+	_build_alerts()
 	info_panel = InfoPanel.new()
 	add_child(info_panel)
 	budget_panel = BudgetPanel.new()
@@ -87,13 +100,19 @@ func _ready() -> void:
 		overlay_select.select(overlay_select.get_item_index(o))
 		overlay_legend.text = OVERLAY_LEGENDS.get(o, ""))
 	Events.message.connect(_show_news)
+	Events.alerts_changed.connect(_on_alerts_changed)
 	Events.city_started.connect(_refresh_all)
 	_refresh_all()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var day := int(get_parent().month_progress() * 30.0) + 1
 	date_label.text = "%s %d, %d" % [Constants.MONTH_NAMES[GameState.month], day, GameState.year]
+	if alert_panel.visible:
+		# Flash the banner border in step with the badges out in the world.
+		_alert_time += delta
+		var pulse := 0.5 + 0.5 * sin(_alert_time / AlertsLayer.PULSE_PERIOD * TAU)
+		alert_style.border_color = Color(1.0, 0.25, 0.20, 0.40 + 0.60 * pulse)
 
 
 # --- Construction -----------------------------------------------------------------
@@ -314,6 +333,54 @@ func _build_news() -> void:
 	news_timer.wait_time = 6.0
 	news_timer.timeout.connect(func() -> void: news_label.text = "")
 	add_child(news_timer)
+
+
+func _build_alerts() -> void:
+	alert_style = StyleBoxFlat.new()
+	alert_style.bg_color = Color(0.11, 0.05, 0.06, 0.93)
+	alert_style.border_color = Color(1.0, 0.25, 0.20)
+	alert_style.set_border_width_all(3)
+	alert_style.set_corner_radius_all(6)
+	alert_style.set_content_margin_all(9)
+	alert_panel = PanelContainer.new()
+	alert_panel.add_theme_stylebox_override("panel", alert_style)
+	alert_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	alert_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	alert_panel.offset_left = 10
+	alert_panel.offset_top = 48
+	alert_panel.visible = false
+	add_child(alert_panel)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 2)
+	alert_panel.add_child(col)
+	var title := Label.new()
+	title.text = "Problems"
+	title.add_theme_font_size_override("font_size", 13)
+	title.modulate = Color(1, 1, 1, 0.75)
+	col.add_child(title)
+	for kind in Alerts.KINDS:
+		var b := Button.new()
+		b.flat = true
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_font_size_override("font_size", 15)
+		b.add_theme_color_override("font_color", ALERT_INFO[kind][1])
+		b.tooltip_text = "Click to jump to the next affected lot"
+		b.pressed.connect(func() -> void: get_parent().focus_alert(kind))
+		col.add_child(b)
+		alert_buttons[kind] = b
+
+
+func _on_alerts_changed(counts: Dictionary) -> void:
+	var total := 0
+	for kind in Alerts.KINDS:
+		var n := int(counts.get(kind, 0))
+		total += n
+		var b: Button = alert_buttons[kind]
+		b.visible = n > 0
+		if n > 0:
+			b.text = ALERT_INFO[kind][0] % [n, "" if n == 1 else "s"]
+	alert_panel.visible = total > 0
 
 
 # --- Updates ---------------------------------------------------------------------

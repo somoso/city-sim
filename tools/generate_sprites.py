@@ -508,42 +508,61 @@ def smoke():
     cv.save(os.path.join(OUT, "smoke.png"))
 
 
-def icon(name, painter):
-    cv = Canvas(48, 48)
-    cv.ellipse(24, 24, 22, 22, (20, 20, 24, 235))
-    cv.ellipse(24, 24, 22, 22, (255, 255, 255, 0))
-    for a in range(0, 360, 2):
-        x = 24 + 21.5 * math.cos(math.radians(a))
-        y = 24 + 21.5 * math.sin(math.radians(a))
-        cv.blend(int(x), int(y), (240, 240, 240, 255))
-    painter(cv)
-    cv.save(os.path.join(OUT, "icon_%s.png" % name))
+ALERT_RING = (214, 44, 44, 255)
+ALERT_RING_HOT = (255, 112, 96, 255)
+ALERT_BG = (24, 28, 40, 246)
+ALERT_BG_HOT = (46, 26, 30, 250)
+
+# Badge geometry: a circle centred at (A_CX, A_CY) plus a pointer whose tip sits on the
+# bottom edge of the canvas, so the renderer can anchor a badge by its bottom centre.
+A_W, A_H = 72, 90
+A_CX, A_CY, A_R = 36, 34, 30
 
 
-def paint_no_power(cv):
-    bolt = [(27, 8), (16, 26), (23, 26), (19, 40), (33, 20), (26, 20), (31, 8)]
-    cv.fill_poly(bolt, (255, 220, 40, 255))
-    cv.outline(bolt, (150, 110, 0, 255))
+def alert_badge(name, painter, hot):
+    """An alert pin: thick red ring, dark face, a service icon, and a downward pointer."""
+    cv = Canvas(A_W, A_H)
+    ring = ALERT_RING_HOT if hot else ALERT_RING
+    face = ALERT_BG_HOT if hot else ALERT_BG
+    if hot:
+        # Outer glow, so the flash frame reads as louder than the base frame.
+        for k in range(5):
+            cv.ellipse(A_CX, A_CY, A_R + 3 + k * 3, A_R + 3 + k * 3, (255, 70, 58, 54 - k * 10))
+    # Pointer first; the circle then covers its top.
+    cv.fill_poly([(A_CX - 14, A_CY + 16), (A_CX + 14, A_CY + 16), (A_CX, A_H - 1)], ring)
+    cv.fill_poly([(A_CX - 8, A_CY + 14), (A_CX + 8, A_CY + 14), (A_CX, A_CY + 27)], face)
+    cv.ellipse(A_CX, A_CY, A_R, A_R, ring)
+    cv.ellipse(A_CX, A_CY, A_R - 7, A_R - 7, face)
+    painter(cv, A_CX, A_CY, hot)
+    cv.save(os.path.join(OUT, "alert_%s%s.png" % (name, "_hot" if hot else "")))
 
 
-def paint_no_water(cv):
-    drop = [(24, 8), (33, 22), (36, 30), (32, 38), (24, 41), (16, 38), (12, 30), (15, 22)]
-    cv.fill_poly(drop, (70, 170, 255, 255))
-    cv.outline(drop, (20, 80, 160, 255))
-    cv.ellipse(19, 30, 3, 5, (200, 235, 255, 255))
+def paint_power(cv, cx, cy, hot):
+    body = (255, 232, 84, 255) if hot else (246, 202, 38, 255)
+    bolt = [(4, -17), (-9, 2), (-1, 2), (-6, 19), (11, -2), (2, -2), (9, -17)]
+    pts = [(cx + a, cy + b) for a, b in bolt]
+    cv.fill_poly(pts, body)
+    cv.outline(pts, (128, 90, 0, 255))
 
 
-def paint_no_road(cv):
-    cv.rect(10, 20, 28, 9, (90, 90, 95, 255))
-    cv.rect(12, 24, 6, 2, (240, 220, 120, 255))
-    cv.rect(21, 24, 6, 2, (240, 220, 120, 255))
-    cv.rect(30, 24, 6, 2, (240, 220, 120, 255))
-    for a in range(0, 360, 1):
-        x = 24 + 15 * math.cos(math.radians(a))
-        y = 24 + 15 * math.sin(math.radians(a))
-        for w in range(3):
-            cv.blend(int(x + w * math.cos(math.radians(a))), int(y + w * math.sin(math.radians(a))), (230, 50, 50, 255))
-    cv.line(13, 35, 35, 13, (230, 50, 50, 255), 3)
+def paint_water(cv, cx, cy, hot):
+    body = (128, 210, 255, 255) if hot else (74, 168, 246, 255)
+    drop = [(0, -18), (9, -5), (13, 4), (9, 13), (0, 17), (-9, 13), (-13, 4), (-9, -5)]
+    pts = [(cx + a, cy + b) for a, b in drop]
+    cv.fill_poly(pts, body)
+    cv.outline(pts, (18, 74, 150, 255))
+    cv.ellipse(cx - 5, cy + 3, 3, 5, (226, 244, 255, 235))
+
+
+def paint_road(cv, cx, cy, hot):
+    slash = (255, 120, 108, 255) if hot else (226, 58, 52, 255)
+    cv.rect(cx - 16, cy - 6, 32, 13, (104, 104, 110, 255))
+    cv.rect(cx - 16, cy - 6, 32, 2, (168, 165, 158, 255))
+    cv.rect(cx - 16, cy + 5, 32, 2, (168, 165, 158, 255))
+    for k in range(3):
+        cv.rect(cx - 13 + k * 10, cy - 1, 6, 3, (232, 208, 96, 255))
+    cv.line(cx - 14, cy + 14, cx + 14, cy - 14, (28, 18, 18, 255), 7)
+    cv.line(cx - 14, cy + 14, cx + 14, cy - 14, slash, 5)
 
 
 # --------------------------------------------------------------------------------------
@@ -913,7 +932,9 @@ def civic_tower():
 
 
 def civic_service(name, wall, roof, s, h, decorate):
-    rng = random.Random(hash(name) & 0xFFFF)
+    # crc32, not hash(): Python randomises string hashing per process, which would
+    # make the generated sprites differ between runs.
+    rng = random.Random(zlib.crc32(name.encode()) & 0xFFFF)
     cv = Canvas(TW * s, TH * s + h + 50)
     iso = Iso(cv, s)
     lot(cv, iso, grass=(108, 156, 78, 255), pave_inset=0.05, pave=(158, 156, 150, 255))
@@ -1052,9 +1073,10 @@ def main():
     fire(0)
     fire(1)
     smoke()
-    icon("no_power", paint_no_power)
-    icon("no_water", paint_no_water)
-    icon("no_road", paint_no_road)
+    for hot in (False, True):
+        alert_badge("power", paint_power, hot)
+        alert_badge("water", paint_water, hot)
+        alert_badge("road", paint_road, hot)
     for density in (1, 2, 3):
         for level in (1, 2, 3):
             for wealth in (1, 2, 3):

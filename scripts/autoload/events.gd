@@ -14,4 +14,6 @@ signal speed_changed(speed: int)
 signal tool_changed(tool: int)
 signal overlay_changed(overlay: int)
 signal tile_selected(index: int)
+## Totals of lots/buildings missing each service: { "road": int, "power": int, "water": int }.
+signal alerts_changed(counts: Dictionary)
 signal message(text: String)

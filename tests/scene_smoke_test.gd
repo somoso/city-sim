@@ -6,6 +6,7 @@ extends Node
 var failures := 0
 var frames := 0
 var game: Node2D
+var town := Vector2i.ZERO
 
 
 func check(cond: bool, msg: String) -> void:
@@ -36,12 +37,23 @@ func _process(_delta: float) -> void:
 			game.apply_tool_at(Constants.Tool.ZONE_R_MED, x, y + 1, x + 4, y + 2)
 			game.apply_tool_at(Constants.Tool.ZONE_C_HIGH, x + 5, y + 1, x + 9, y + 2)
 			game.apply_tool_at(Constants.Tool.ZONE_I_LOW, x, y + 3, x + 9, y + 4)
-			game.apply_tool_at(Constants.Tool.POWER_COAL, x, y - 2, 0, 0)
-			game.apply_tool_at(Constants.Tool.WATER_TOWER, x + 2, y - 1, 0, 0)
-			game.apply_tool_at(Constants.Tool.POLICE, x + 3, y - 2, 0, 0)
-			game.apply_tool_at(Constants.Tool.PARK, x + 6, y - 1, 0, 0)
-			GameState.set_speed(3)
+			town = Vector2i(x, y)
 			Events.tile_selected.emit(grid.idx(x, y + 1))
+		3:
+			# Roads and zones exist but no utilities yet, so the warnings must be up.
+			check(game.alerts_layer.has_alerts(), "alerts layer picked up missing services")
+			check(game.hud.alert_panel.visible, "HUD problem banner is shown")
+			check(game.hud.alert_buttons["power"].visible and game.hud.alert_buttons["water"].visible,
+				"power and water rows are listed")
+			var before_focus: Vector2 = game.camera.position
+			game.focus_alert("power")
+			check(game.camera.position != before_focus, "clicking a problem moves the camera")
+			game.apply_tool_at(Constants.Tool.POWER_COAL, town.x, town.y - 2, 0, 0)
+			game.apply_tool_at(Constants.Tool.WATER_TOWER, town.x + 2, town.y - 1, 0, 0)
+			game.apply_tool_at(Constants.Tool.POLICE, town.x + 3, town.y - 2, 0, 0)
+			game.apply_tool_at(Constants.Tool.PARK, town.x + 6, town.y - 1, 0, 0)
+			GameState.set_speed(3)
+			check(game.alerts_layer.counts["power"] < 5, "power alerts clear once a plant is connected (%d left)" % game.alerts_layer.counts["power"])
 		4:
 			GameState.set_tool(Constants.Tool.ZONE_R_HIGH)
 			game.cursor_layer.set_hover(Vector2i(10, 10))
@@ -76,6 +88,7 @@ func _process(_delta: float) -> void:
 			GameState.set_tool(Constants.Tool.QUERY)
 			Events.tile_selected.emit(0)
 		28:
+			check(game.alerts_layer.draw_count >= 3, "alerts layer animated (%d draws)" % game.alerts_layer.draw_count)
 			check(game.terrain_layer.draw_count >= 16, "terrain chunks drew (%d)" % game.terrain_layer.draw_count)
 			check(game.world_layer.draw_count >= 16, "world chunks drew (%d)" % game.world_layer.draw_count)
 			check(game.overlay_layer.draw_count >= 16, "overlay chunks drew (%d)" % game.overlay_layer.draw_count)

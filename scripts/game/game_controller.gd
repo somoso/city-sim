@@ -5,6 +5,7 @@ extends Node2D
 @onready var terrain_layer: TerrainLayer = $World/TerrainLayer
 @onready var world_layer: WorldLayer = $World/WorldLayer
 @onready var overlay_layer: OverlayLayer = $World/OverlayLayer
+@onready var alerts_layer: AlertsLayer = $World/AlertsLayer
 @onready var cursor_layer: CursorLayer = $World/CursorLayer
 @onready var camera: CameraController = $Camera2D
 @onready var hud = $HUD
@@ -14,6 +15,8 @@ var _accum := 0.0
 var _dragging := false
 var _drag_start := Vector2i(-1, -1)
 var _hover := Vector2i(-1, -1)
+## Per-problem index, so clicking a HUD warning repeatedly tours the affected lots.
+var _alert_cursor := {}
 
 
 func _ready() -> void:
@@ -35,6 +38,8 @@ func _setup_city() -> void:
 	world_layer.setup(grid)
 	overlay_layer.setup(grid)
 	overlay_layer.set_overlay(GameState.current_overlay)
+	alerts_layer.setup(grid)
+	_alert_cursor.clear()
 	cursor_layer.setup(grid, tools)
 	camera.set_map_bounds(grid)
 	camera.focus_tile(TerrainGenerator.find_start_tile(grid))
@@ -176,6 +181,7 @@ func _on_tiles_changed(indices: PackedInt32Array) -> void:
 	terrain_layer.mark_tiles_dirty(indices)
 	if overlay_layer.visible:
 		overlay_layer.mark_all_dirty()
+	alerts_layer.rebuild()
 	cursor_layer.queue_redraw()
 
 
@@ -184,4 +190,26 @@ func _on_world_changed() -> void:
 	terrain_layer.mark_all_dirty()
 	if overlay_layer.visible:
 		overlay_layer.mark_all_dirty()
+	alerts_layer.rebuild()
 	cursor_layer.queue_redraw()
+
+
+## Centres the camera on a lot suffering `kind` ("road", "power" or "water") and selects
+## it. Repeated calls walk through every affected lot in turn.
+func focus_alert(kind: String) -> void:
+	var mask := Alerts.mask_for(kind)
+	if mask == Alerts.NONE or alerts_layer.flags.size() != GameState.grid.size:
+		return
+	var hits := PackedInt32Array()
+	for i in range(alerts_layer.flags.size()):
+		if alerts_layer.flags[i] & mask:
+			hits.append(i)
+	if hits.is_empty():
+		return
+	var n := int(_alert_cursor.get(kind, -1)) + 1
+	if n >= hits.size():
+		n = 0
+	_alert_cursor[kind] = n
+	var target := hits[n]
+	camera.focus_tile(Vector2i(GameState.grid.x_of(target), GameState.grid.y_of(target)))
+	Events.tile_selected.emit(target)

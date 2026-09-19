@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://t84nvthcmwp4"
-path="res://.godot/imported/icon_no_power.png-67ea8b0e2ce5db0b3e36c41c8756811e.ctex"
+uid="uid://uqws35vnpcom"
+path="res://.godot/imported/alert_power.png-8400ba5f713d7d93dc52baac25462525.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/icon_no_power.png"
-dest_files=["res://.godot/imported/icon_no_power.png-67ea8b0e2ce5db0b3e36c41c8756811e.ctex"]
+source_file="res://assets/sprites/alert_power.png"
+dest_files=["res://.godot/imported/alert_power.png-8400ba5f713d7d93dc52baac25462525.ctex"]
 
 [params]
 

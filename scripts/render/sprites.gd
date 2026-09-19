@@ -54,17 +54,35 @@ static func civic_sprite(building: int) -> String:
 	return CIVIC_SPRITES.get(building, "")
 
 
+## World-space rectangle `name` occupies when its footprint (side `fsize` tiles) starts at
+## tile (x, y). Empty when the sprite is missing.
+static func rect_of(name: String, x: int, y: int, fsize: int = 1) -> Rect2:
+	var t := tex(name)
+	if t == null:
+		return Rect2()
+	var top := IsoMath.tile_to_screen(x, y)
+	var size := t.get_size()
+	return Rect2(Vector2(top.x - IsoMath.HW * fsize, top.y + Constants.TILE_H * fsize - size.y), size)
+
+
 ## Draws `name` so its footprint (side `fsize` tiles) starts at tile (x, y).
 ## Returns the drawn rectangle in world space, or an empty Rect2 if the sprite is missing.
 static func draw(ci: CanvasItem, name: String, x: int, y: int, fsize: int = 1, modulate: Color = Color.WHITE) -> Rect2:
 	var t := tex(name)
 	if t == null:
 		return Rect2()
-	var top := IsoMath.tile_to_screen(x, y)
-	var size := t.get_size()
-	var pos := Vector2(top.x - IsoMath.HW * fsize, top.y + Constants.TILE_H * fsize - size.y)
-	ci.draw_texture(t, pos, modulate)
-	return Rect2(pos, size)
+	var rect := rect_of(name, x, y, fsize)
+	ci.draw_texture(t, rect.position, modulate)
+	return rect
+
+
+## Draws an alert badge so the tip of its pointer rests on `anchor`.
+static func draw_badge(ci: CanvasItem, name: String, anchor: Vector2, scale: float = 1.0, modulate: Color = Color.WHITE) -> void:
+	var t := tex(name)
+	if t == null:
+		return
+	var size := t.get_size() * scale
+	ci.draw_texture_rect(t, Rect2(anchor - Vector2(size.x * 0.5, size.y), size), false, modulate)
 
 
 ## Draws `name` centred on a world-space point (icons, smoke).

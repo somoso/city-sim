@@ -63,6 +63,20 @@ func _ready() -> void:
 	tools.apply_area(Constants.Tool.ZONE_C_LOW, ox + 10, oy + 5, ox + 17, oy + 6)
 	tools.apply_area(Constants.Tool.ZONE_I_LOW, ox + 10, oy + 7, ox + 17, oy + 8)
 	tools.apply_area(Constants.Tool.ZONE_I_LOW, ox, oy + 10, ox + 8, oy + 11)
+
+	# Before any utility exists, every zoned lot must raise a missing-power and
+	# missing-water alert, including lots that have not developed yet. This is what tells
+	# the player why a freshly zoned neighbourhood is doing nothing.
+	var dry := Alerts.compute(grid)
+	check(dry["counts"]["power"] > 20 and dry["counts"]["water"] > 20,
+		"unserviced zones raise power/water alerts (power %d, water %d)" % [dry["counts"]["power"], dry["counts"]["water"]])
+	var undeveloped_flagged := 0
+	for i in range(grid.size):
+		if grid.zone_type[i] != Constants.Zone.NONE and grid.level[i] == 0 and dry["flags"][i] != 0:
+			undeveloped_flagged += 1
+	check(undeveloped_flagged > 20, "undeveloped lots are flagged too (%d)" % undeveloped_flagged)
+	check(dry["flags"][grid.idx(ox + 1, oy + 5)] & Alerts.NO_POWER != 0, "a specific lot reports no power")
+
 	var placed_power := tools.apply_point(Constants.Tool.POWER_COAL, ox, oy + 2)
 	var placed_water := tools.apply_point(Constants.Tool.WATER_TOWER, ox + 3, oy + 3)
 	if not placed_water:
@@ -120,6 +134,16 @@ func _ready() -> void:
 			if grid.powered[i] == 1:
 				powered += 1
 	check(developed > 0 and powered == developed, "all developed lots powered (%d/%d)" % [powered, developed])
+
+	# With power, water and roads in place the alerts must clear for served lots.
+	var after := Alerts.compute(grid)
+	var served_flagged := 0
+	for i in range(grid.size):
+		if grid.is_developed(i) and grid.road_access[i] == 1 and grid.powered[i] == 1 and grid.watered[i] == 1:
+			if after["flags"][i] != 0:
+				served_flagged += 1
+	check(served_flagged == 0, "fully served lots raise no alert (%d did)" % served_flagged)
+	check(Alerts.mask_for("power") == Alerts.NO_POWER and Alerts.mask_for("nope") == Alerts.NONE, "alert kind lookup")
 
 	# Disasters must not crash.
 	GameState.post_message(FireSim.trigger_tornado(grid, GameState.rng))
