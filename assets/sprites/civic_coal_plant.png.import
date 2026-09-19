@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://fa4wlpu6mf5b"
-path="res://.godot/imported/civic_tower.png-fbb848553a1765d781d3236197bfeea7.ctex"
+uid="uid://cdpdd7ypjs6d3"
+path="res://.godot/imported/civic_coal_plant.png-9b4c01c811718ee2e2d4325a52de857e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/civic_tower.png"
-dest_files=["res://.godot/imported/civic_tower.png-fbb848553a1765d781d3236197bfeea7.ctex"]
+source_file="res://assets/sprites/civic_coal_plant.png"
+dest_files=["res://.godot/imported/civic_coal_plant.png-9b4c01c811718ee2e2d4325a52de857e.ctex"]
 
 [params]
 

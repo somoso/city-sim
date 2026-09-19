@@ -8,7 +8,9 @@ static func run_month(grid: CityGrid, state, rng: RandomNumberGenerator) -> Arra
 	RoadNetwork.run(grid)
 	Utilities.run(grid, state)
 	Services.run(grid, state)
-	EnvironmentSim.run(grid)
+	Society.run(grid, state)
+	Waste.run(grid, state)
+	EnvironmentSim.run(grid, state)
 	Demand.run(grid, state)
 	var growth := ZoneGrowth.run(grid, state, rng)
 	news.append_array(FireSim.run(grid, state, rng))
@@ -20,6 +22,9 @@ static func run_month(grid: CityGrid, state, rng: RandomNumberGenerator) -> Arra
 		news.append("Brownouts reported: power demand exceeds supply.")
 	if state.water_demand > state.water_supply and state.water_demand > 0:
 		news.append("Water shortage: build more pumps or towers.")
+	if state.waste_served < 0.999 and state.waste_production > 0.0:
+		news.append("Refuse is piling up: %d of %d units go uncollected." % [
+			int(round(state.waste_production - state.waste_capacity)), int(round(state.waste_production))])
 	if state.funds < 0:
 		news.append("The city is in debt! Cut spending or raise taxes.")
 	if growth["abandoned"] > growth["grown"] and growth["abandoned"] > 3:
@@ -32,5 +37,7 @@ static func refresh(grid: CityGrid, state) -> void:
 	RoadNetwork.run(grid)
 	Utilities.run(grid, state)
 	Services.run(grid, state)
-	EnvironmentSim.run(grid)
+	Society.run(grid, state)
+	Waste.run(grid, state)
+	EnvironmentSim.run(grid, state)
 	Demand.run(grid, state)

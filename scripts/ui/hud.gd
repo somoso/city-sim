@@ -11,8 +11,14 @@ const CATEGORIES := [
 	["Residential", [T.ZONE_R_LOW, T.ZONE_R_MED, T.ZONE_R_HIGH]],
 	["Commercial", [T.ZONE_C_LOW, T.ZONE_C_MED, T.ZONE_C_HIGH]],
 	["Industrial", [T.ZONE_I_LOW, T.ZONE_I_MED, T.ZONE_I_HIGH]],
-	["Utilities", [T.POWER_COAL, T.POWER_WIND, T.POWER_NUCLEAR, T.WATER_PUMP, T.WATER_TOWER]],
-	["Civic", [T.POLICE, T.FIRE_STATION, T.SCHOOL, T.HOSPITAL, T.PARK]],
+	["Power", [T.POWER_COAL, T.POWER_WIND, T.POWER_NUCLEAR]],
+	["Water", [T.WATER_PUMP, T.WATER_TOWER]],
+	["Waste", [T.LANDFILL, T.INCINERATOR, T.RECYCLING_CENTRE]],
+	["Police", [T.POLICE, T.PRISON, T.HIGH_SECURITY_PRISON]],
+	["Fire", [T.FIRE_STATION, T.FIRE_HELIPAD]],
+	["Health", [T.GP_SURGERY, T.COMMUNITY_HOSPITAL, T.HOSPITAL, T.PRIVATE_HOSPITAL]],
+	["Education", [T.NURSERY, T.SCHOOL, T.UNIVERSITY]],
+	["Services", [T.PARK, T.DEMOLITION_DEPOT]],
 ]
 
 const SHORT_NAMES := {
@@ -21,9 +27,14 @@ const SHORT_NAMES := {
 	T.ZONE_C_LOW: "Low", T.ZONE_C_MED: "Medium", T.ZONE_C_HIGH: "High",
 	T.ZONE_I_LOW: "Agriculture", T.ZONE_I_MED: "Medium", T.ZONE_I_HIGH: "High",
 	T.POWER_COAL: "Coal Plant", T.POWER_WIND: "Wind Turbine", T.POWER_NUCLEAR: "Nuclear Plant",
-	T.WATER_PUMP: "Water Pump", T.WATER_TOWER: "Water Tower",
-	T.POLICE: "Police", T.FIRE_STATION: "Fire Station", T.SCHOOL: "School",
-	T.HOSPITAL: "Hospital", T.PARK: "Park",
+	T.WATER_PUMP: "Pump", T.WATER_TOWER: "Tower",
+	T.LANDFILL: "Landfill", T.INCINERATOR: "Incinerator", T.RECYCLING_CENTRE: "Recycling",
+	T.POLICE: "Station", T.PRISON: "Prison", T.HIGH_SECURITY_PRISON: "High Security",
+	T.FIRE_STATION: "Station", T.FIRE_HELIPAD: "Helicopters",
+	T.GP_SURGERY: "GP", T.COMMUNITY_HOSPITAL: "Community", T.HOSPITAL: "General",
+	T.PRIVATE_HOSPITAL: "Private",
+	T.NURSERY: "Nursery", T.SCHOOL: "High School", T.UNIVERSITY: "University",
+	T.PARK: "Park", T.DEMOLITION_DEPOT: "Demolition Depot",
 }
 
 var city_label: Label
@@ -56,6 +67,7 @@ const ALERT_INFO := {
 	"road": ["No road access: %d lot%s", Color(1.0, 0.72, 0.66)],
 	"power": ["No electricity: %d lot%s", Color(1.0, 0.86, 0.35)],
 	"water": ["No water: %d lot%s", Color(0.55, 0.80, 1.0)],
+	"waste": ["Refuse uncollected: %d lot%s", Color(0.72, 0.86, 0.60)],
 	"abandoned": ["Abandoned: %d lot%s", Color(0.86, 0.72, 0.52)],
 }
 
@@ -81,6 +93,7 @@ const OVERLAY_LEGENDS := {
 var info_panel: InfoPanel
 var budget_panel: BudgetPanel
 var utility_panel: UtilityPanel
+var civic_panel: CivicPanel
 var menu_panel: GameMenu
 
 
@@ -97,6 +110,8 @@ func _ready() -> void:
 	add_child(budget_panel)
 	utility_panel = UtilityPanel.new()
 	add_child(utility_panel)
+	civic_panel = CivicPanel.new()
+	add_child(civic_panel)
 	menu_panel = GameMenu.new()
 	add_child(menu_panel)
 
@@ -207,6 +222,11 @@ func _build_top_bar() -> void:
 		b.pressed.connect(func() -> void: GameState.set_speed(s))
 		row.add_child(b)
 		speed_buttons.append(b)
+	var civic_btn := Button.new()
+	civic_btn.text = "Civic"
+	civic_btn.tooltip_text = "Police, fire, health and education coverage, and what each costs per resident"
+	civic_btn.pressed.connect(func() -> void: civic_panel.toggle())
+	row.add_child(civic_btn)
 	var utilities_btn := Button.new()
 	utilities_btn.text = "Utilities"
 	utilities_btn.tooltip_text = "Power and water utilisation, with ten years of history"
@@ -269,7 +289,7 @@ func _show_category(tools_in: Array) -> void:
 	for t in tools_in:
 		var b := Button.new()
 		var cost := BuildingDefs.tool_cost(t)
-		b.text = SHORT_NAMES.get(t, BuildingDefs.TOOL_NAMES[t])
+		b.text = SHORT_NAMES.get(t, BuildingDefs.tool_name(t))
 		if cost > 0:
 			b.text += "  $%d" % cost
 		b.toggle_mode = true
@@ -283,7 +303,7 @@ func _show_category(tools_in: Array) -> void:
 
 
 func _tool_tooltip(t: int) -> String:
-	var name: String = BuildingDefs.TOOL_NAMES[t]
+	var name: String = BuildingDefs.tool_name(t)
 	if BuildingDefs.tool_is_building(t):
 		var def := BuildingDefs.get_def(BuildingDefs.TOOL_BUILDING[t])
 		var s := "%s\n%s\nCost $%d, upkeep $%d/month" % [name, def.get("desc", ""), def.get("cost", 0), def.get("upkeep", 0)]
@@ -444,7 +464,7 @@ func _refresh_tool(t: int) -> void:
 	if t == T.NONE:
 		tool_hint.text = "No tool selected. Click a tile to inspect it."
 	else:
-		tool_hint.text = "%s selected" % BuildingDefs.TOOL_NAMES[t]
+		tool_hint.text = "%s selected" % BuildingDefs.tool_name(t)
 
 
 func _show_news(text: String) -> void:
@@ -455,7 +475,7 @@ func _show_news(text: String) -> void:
 ## Closes any open panel; returns true if one was open.
 func close_panels() -> bool:
 	var closed := false
-	for p in [info_panel, budget_panel, utility_panel, menu_panel]:
+	for p in [info_panel, budget_panel, utility_panel, civic_panel, menu_panel]:
 		if p.visible:
 			p.hide_panel()
 			closed = true

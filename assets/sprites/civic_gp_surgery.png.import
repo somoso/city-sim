@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c62d2ak1a2l5m"
-path="res://.godot/imported/civic_school.png-35547d3675c3614fcd30639a8e4d7d31.ctex"
+uid="uid://bsdtyct67wqko"
+path="res://.godot/imported/civic_gp_surgery.png-60e0431402012b86ddd7b83e0438d9b1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/civic_school.png"
-dest_files=["res://.godot/imported/civic_school.png-35547d3675c3614fcd30639a8e4d7d31.ctex"]
+source_file="res://assets/sprites/civic_gp_surgery.png"
+dest_files=["res://.godot/imported/civic_gp_surgery.png-60e0431402012b86ddd7b83e0438d9b1.ctex"]
 
 [params]
 

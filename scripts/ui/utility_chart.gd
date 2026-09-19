@@ -25,6 +25,8 @@ const PAD_BOTTOM := 26.0
 
 var title_text := "Power"
 var unit := "MW"
+var demand_name := "Demand"
+var capacity_name := "Capacity"
 var demand := PackedFloat32Array()
 var capacity := PackedFloat32Array()
 
@@ -150,7 +152,7 @@ func _draw() -> void:
 
 ## Legend: a colour chip carries identity, the words stay in ink.
 func _draw_legend(font: Font, r: Rect2) -> void:
-	var entries := [["Demand", DEMAND], ["Capacity", CAPACITY]]
+	var entries := [[demand_name, DEMAND], [capacity_name, CAPACITY]]
 	var x := r.end.x
 	for k in range(entries.size() - 1, -1, -1):
 		var text: String = entries[k][0]
@@ -187,8 +189,8 @@ func _draw_hover(font: Font, r: Rect2, y_max: float) -> void:
 	var months_ago := demand.size() - 1 - i
 	var lines := [
 		_month_label(months_ago),
-		"Demand %s %s" % [_fmt(d), unit],
-		"Capacity %s %s" % [_fmt(c), unit],
+		"%s %s %s" % [demand_name, _fmt(d), unit],
+		"%s %s %s" % [capacity_name, _fmt(c), unit],
 	]
 	var w := 0.0
 	for l in lines:

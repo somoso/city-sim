@@ -3,8 +3,8 @@ extends RefCounted
 ## Pollution, crime, land value and fire risk maps.
 
 
-static func run(grid: CityGrid) -> void:
-	_pollution(grid)
+static func run(grid: CityGrid, state = null) -> void:
+	_pollution(grid, state)
 	_crime(grid)
 	_land_value(grid)
 	_fire_risk(grid)
@@ -37,7 +37,11 @@ static func _blur(grid: CityGrid, src: PackedFloat32Array, passes: int) -> Packe
 	return cur
 
 
-static func _pollution(grid: CityGrid) -> void:
+static func _pollution(grid: CityGrid, state) -> void:
+	# Refuse the city cannot process rots where it was produced.
+	var uncollected := 0.0
+	if state != null:
+		uncollected = clampf(1.0 - state.waste_served, 0.0, 1.0)
 	var src := PackedFloat32Array()
 	src.resize(grid.size)
 	src.fill(0.0)
@@ -53,6 +57,8 @@ static func _pollution(grid: CityGrid) -> void:
 			v += 30.0
 		if grid.building[i] == Constants.Building.RUBBLE:
 			v += 2.0
+		if uncollected > 0.0:
+			v += Waste.tile_waste(grid, i) * uncollected * 1.4
 		src[i] = v
 	var spread := _blur(grid, src, 3)
 	for i in range(grid.size):

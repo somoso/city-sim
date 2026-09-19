@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5h1rdrbyw1kh"
-path="res://.godot/imported/civic_coal.png-37b4610ed0c2f0c2e1250cdc82902b24.ctex"
+uid="uid://dgdeimkfcrp2c"
+path="res://.godot/imported/civic_recycling_centre.png-09bd54005cd51c18791e2c2032f413ca.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/civic_coal.png"
-dest_files=["res://.godot/imported/civic_coal.png-37b4610ed0c2f0c2e1250cdc82902b24.ctex"]
+source_file="res://assets/sprites/civic_recycling_centre.png"
+dest_files=["res://.godot/imported/civic_recycling_centre.png-09bd54005cd51c18791e2c2032f413ca.ctex"]
 
 [params]
 

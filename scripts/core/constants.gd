@@ -38,6 +38,19 @@ enum Building {
 	SCHOOL,
 	HOSPITAL,
 	PARK,
+	# Appended so that existing saves keep their building ids.
+	PRISON,
+	HIGH_SECURITY_PRISON,
+	FIRE_HELIPAD,
+	NURSERY,
+	UNIVERSITY,
+	GP_SURGERY,
+	COMMUNITY_HOSPITAL,
+	PRIVATE_HOSPITAL,
+	LANDFILL,
+	INCINERATOR,
+	RECYCLING_CENTRE,
+	DEMOLITION_DEPOT,
 }
 
 enum Tool {
@@ -65,6 +78,19 @@ enum Tool {
 	SCHOOL,
 	HOSPITAL,
 	PARK,
+	# Appended so that existing saves keep their building ids.
+	PRISON,
+	HIGH_SECURITY_PRISON,
+	FIRE_HELIPAD,
+	NURSERY,
+	UNIVERSITY,
+	GP_SURGERY,
+	COMMUNITY_HOSPITAL,
+	PRIVATE_HOSPITAL,
+	LANDFILL,
+	INCINERATOR,
+	RECYCLING_CENTRE,
+	DEMOLITION_DEPOT,
 }
 
 enum Overlay {
@@ -110,6 +136,35 @@ const IND_JOBS_PER_LEVEL := [0, 10, 30, 60]
 const ZONE_POWER_USE := [0, 1, 3, 8]
 ## Water units used per developed zone tile, per level, indexed by density.
 const ZONE_WATER_USE := [0, 1, 3, 8]
+## Waste produced per developed residential tile, per level, indexed by density.
+## Medium blocks are the tidiest per home; towers generate the most.
+const ZONE_WASTE := [0, 5, 3, 7]
+
+
+## Tunable lookups. Each reads data/balance.json and falls back to the table above.
+static func res_pop(density: int) -> float:
+	return float(Balance.nums("zones.res.population", RES_POP_PER_LEVEL)[clampi(density, 0, 3)])
+
+
+static func com_jobs(density: int) -> float:
+	return float(Balance.nums("zones.com.jobs", COM_JOBS_PER_LEVEL)[clampi(density, 0, 3)])
+
+
+static func ind_jobs(density: int) -> float:
+	return float(Balance.nums("zones.ind.jobs", IND_JOBS_PER_LEVEL)[clampi(density, 0, 3)])
+
+
+static func zone_power_use(density: int) -> float:
+	return float(Balance.nums("zones.power_use", ZONE_POWER_USE)[clampi(density, 0, 3)])
+
+
+static func zone_water_use(density: int) -> float:
+	return float(Balance.nums("zones.water_use", ZONE_WATER_USE)[clampi(density, 0, 3)])
+
+
+## Waste a residential lot of this density puts out per level, per month.
+static func zone_waste(density: int) -> float:
+	return float(Balance.nums("zones.res.waste", ZONE_WASTE)[clampi(density, 0, 3)])
 
 const ZONE_COLORS := {
 	Zone.RES: Color(0.30, 0.75, 0.30),
@@ -138,15 +193,19 @@ const AGRICULTURE_BLOCK := Vector2i(8, 0)
 ## How far this lot may sit from a road and still count as served.
 static func access_depth(zone: int, density: int) -> int:
 	if zone == Zone.IND and density == 1:
-		return AGRICULTURE_ACCESS_DEPTH
-	return ACCESS_DEPTH
+		return Balance.int_val("zones.ind.agriculture_access_depth", AGRICULTURE_ACCESS_DEPTH)
+	return Balance.int_val("zones.access_depth", ACCESS_DEPTH)
 
 
 ## Largest block this zone may form, as Vector2i(short side, long side); 0 = unlimited.
 static func block_limits(zone: int, density: int) -> Vector2i:
-	if zone == Zone.IND and density == 1:
-		return AGRICULTURE_BLOCK
-	return ZONE_BLOCK.get(zone, Vector2i(4, 0))
+	var path := "zones.ind.agriculture_block"
+	var fallback: Vector2i = AGRICULTURE_BLOCK
+	if not (zone == Zone.IND and density == 1):
+		fallback = ZONE_BLOCK.get(zone, Vector2i(4, 0))
+		path = "zones.%s.block" % ["", "res", "com", "ind"][clampi(zone, 0, 3)]
+	var v := Balance.nums(path, [float(fallback.x), float(fallback.y)])
+	return Vector2i(int(v[0]), int(v[1]))
 
 
 ## Display name for a zone, which is "Agricultural" for low-density industrial.

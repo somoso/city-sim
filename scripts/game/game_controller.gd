@@ -17,6 +17,8 @@ var _drag_start := Vector2i(-1, -1)
 var _hover := Vector2i(-1, -1)
 ## Per-problem index, so clicking a HUD warning repeatedly tours the affected lots.
 var _alert_cursor := {}
+## Real-time seconds left before the demolition depot may sweep again.
+var demolish_cooldown := 0.0
 
 
 func _ready() -> void:
@@ -24,6 +26,11 @@ func _ready() -> void:
 		GameState.new_city(64, 64, randi() % 1000000, "New City", false)
 	_setup_city()
 	Events.city_started.connect(_setup_city)
+	Events.balance_reloaded.connect(func() -> void:
+		if GameState.has_city():
+			Simulation.refresh(GameState.grid, GameState)
+			GameState.post_message("Reloaded balance.json.")
+			Events.world_changed.emit())
 	Events.tiles_changed.connect(_on_tiles_changed)
 	Events.world_changed.connect(_on_world_changed)
 	Events.overlay_changed.connect(func(o: int) -> void: overlay_layer.set_overlay(o))
@@ -40,6 +47,7 @@ func _setup_city() -> void:
 	overlay_layer.set_overlay(GameState.current_overlay)
 	alerts_layer.setup(grid)
 	_alert_cursor.clear()
+	demolish_cooldown = 0.0
 	cursor_layer.setup(grid, tools)
 	camera.set_map_bounds(grid)
 	camera.focus_tile(TerrainGenerator.find_start_tile(grid))
@@ -49,6 +57,7 @@ func _setup_city() -> void:
 
 
 func _process(delta: float) -> void:
+	_run_demolition(delta)
 	var s := GameState.speed
 	if s > 0 and GameState.has_city():
 		_accum += delta
@@ -56,6 +65,26 @@ func _process(delta: float) -> void:
 		if _accum >= period:
 			_accum -= period
 			GameState.tick_month()
+
+
+## Demolition depots clear derelict lots on their own, in batches, with a rest between
+## sweeps so a big clear-up is spread out rather than happening in a single frame.
+func _run_demolition(delta: float) -> void:
+	if not GameState.has_city():
+		return
+	if demolish_cooldown > 0.0:
+		demolish_cooldown = maxf(demolish_cooldown - delta, 0.0)
+		return
+	if not Demolition.has_working_depot(GameState.grid):
+		return
+	var cleared := Demolition.sweep(GameState.grid, Demolition.batch_size())
+	if cleared.is_empty():
+		return
+	demolish_cooldown = Demolition.cooldown_seconds()
+	GameState.post_message("Demolition crews cleared %d derelict lot%s." % [
+		cleared.size(), "" if cleared.size() == 1 else "s"])
+	Simulation.refresh(GameState.grid, GameState)
+	Events.tiles_changed.emit(cleared)
 
 
 ## Fraction of the current month that has elapsed (0..1), for the HUD day counter.

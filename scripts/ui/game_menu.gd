@@ -59,6 +59,23 @@ func _ready() -> void:
 	col.add_child(status)
 
 	col.add_child(HSeparator.new())
+	var music_row := HBoxContainer.new()
+	col.add_child(music_row)
+	var music_check := CheckBox.new()
+	music_check.text = "Music"
+	music_check.button_pressed = Music.enabled
+	music_check.toggled.connect(func(on: bool) -> void: Music.set_enabled(on))
+	music_row.add_child(music_check)
+	var volume := HSlider.new()
+	volume.min_value = -40.0
+	volume.max_value = 0.0
+	volume.step = 1.0
+	volume.value = Music.DEFAULT_VOLUME_DB
+	volume.custom_minimum_size.x = 160
+	volume.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	volume.value_changed.connect(func(v: float) -> void: Music.set_volume_db(v))
+	music_row.add_child(volume)
+
 	disasters_check = CheckBox.new()
 	disasters_check.text = "Random disasters"
 	disasters_check.toggled.connect(func(on: bool) -> void: GameState.disasters_enabled = on)

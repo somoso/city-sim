@@ -9,8 +9,9 @@ const NO_ROAD := 1
 const NO_POWER := 2
 const NO_WATER := 4
 const ABANDONED := 8
+const NO_WASTE := 16
 
-const KINDS := ["road", "power", "water", "abandoned"]
+const KINDS := ["road", "power", "water", "waste", "abandoned"]
 
 
 static func mask_for(kind: String) -> int:
@@ -18,6 +19,7 @@ static func mask_for(kind: String) -> int:
 		"road": return NO_ROAD
 		"power": return NO_POWER
 		"water": return NO_WATER
+		"waste": return NO_WASTE
 		"abandoned": return ABANDONED
 	return NONE
 
@@ -28,13 +30,15 @@ static func mask_for(kind: String) -> int:
 ## player has to fix first and power and water travel along roads anyway. Lots that are
 ## zoned but not yet developed are included: they are exactly the ones a player is most
 ## likely to misread as "nothing is happening here".
-static func compute(grid: CityGrid) -> Dictionary:
+static func compute(grid: CityGrid, state = null) -> Dictionary:
 	var flags := PackedByteArray()
-	var counts := { "road": 0, "power": 0, "water": 0, "abandoned": 0 }
+	var counts := { "road": 0, "power": 0, "water": 0, "waste": 0, "abandoned": 0 }
 	if grid == null:
 		return { "flags": flags, "counts": counts }
 	flags.resize(grid.size)
 	flags.fill(0)
+	# Refuse is a city-wide service, so a shortfall is flagged on the homes producing it.
+	var refuse_short: bool = state != null and state.waste_served < 0.999 and state.waste_production > 0.0
 
 	for i in range(grid.size):
 		var f := NONE
@@ -48,6 +52,8 @@ static func compute(grid: CityGrid) -> Dictionary:
 					f |= NO_WATER
 			if grid.abandoned[i] == 1:
 				f |= ABANDONED
+			if refuse_short and Waste.tile_waste(grid, i) > 0.0:
+				f |= NO_WASTE
 		elif grid.has_civic(i) and grid.owner[i] == i:
 			var type := grid.building[i]
 			if int(BuildingDefs.def_value(type, "power_use", 0)) > 0 and grid.powered[i] == 0:
@@ -65,6 +71,8 @@ static func compute(grid: CityGrid) -> Dictionary:
 			counts["power"] += 1
 		if f & NO_WATER:
 			counts["water"] += 1
+		if f & NO_WASTE:
+			counts["waste"] += 1
 		if f & ABANDONED:
 			counts["abandoned"] += 1
 	return { "flags": flags, "counts": counts }

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2akqhvdl5fq7"
-path="res://.godot/imported/civic_nuclear.png-e0ad025a2ebd1ad2a059b5e025d84ee6.ctex"
+uid="uid://v1a38tjxbxwq"
+path="res://.godot/imported/civic_nursery.png-7e64c286bbd2cd7ac1b93dfc62c47d06.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/civic_nuclear.png"
-dest_files=["res://.godot/imported/civic_nuclear.png-e0ad025a2ebd1ad2a059b5e025d84ee6.ctex"]
+source_file="res://assets/sprites/civic_nursery.png"
+dest_files=["res://.godot/imported/civic_nursery.png-7e64c286bbd2cd7ac1b93dfc62c47d06.ctex"]
 
 [params]
 

@@ -13,7 +13,8 @@ var supply := 0.0
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(0, 14)
+	# Only claim a height; the width is whatever the caller or the container gives it.
+	custom_minimum_size.y = maxf(custom_minimum_size.y, 14.0)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 

@@ -9,19 +9,6 @@ const DIR := "res://assets/sprites/"
 
 static var _cache := {}
 
-const CIVIC_SPRITES := {
-	Constants.Building.POWER_COAL: "civic_coal",
-	Constants.Building.POWER_WIND: "civic_wind",
-	Constants.Building.POWER_NUCLEAR: "civic_nuclear",
-	Constants.Building.WATER_PUMP: "civic_pump",
-	Constants.Building.WATER_TOWER: "civic_tower",
-	Constants.Building.POLICE: "civic_police",
-	Constants.Building.FIRE_STATION: "civic_fire_station",
-	Constants.Building.SCHOOL: "civic_school",
-	Constants.Building.HOSPITAL: "civic_hospital",
-	Constants.Building.PARK: "civic_park",
-}
-
 const ZONE_PREFIX := {
 	Constants.Zone.RES: "res",
 	Constants.Zone.COM: "com",
@@ -51,7 +38,8 @@ static func lot_sprite(zone: int, density: int) -> String:
 
 
 static func civic_sprite(building: int) -> String:
-	return CIVIC_SPRITES.get(building, "")
+	var key := BuildingDefs.building_key(building)
+	return "" if key == "" else "civic_%s" % key
 
 
 ## World-space rectangle `name` occupies when its footprint (side `fsize` tiles) starts at

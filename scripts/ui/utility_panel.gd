@@ -10,6 +10,9 @@ var power_meter: UtilityMeter
 var water_meter: UtilityMeter
 var power_chart: UtilityChart
 var water_chart: UtilityChart
+var waste_stat: Label
+var waste_meter: UtilityMeter
+var waste_chart: UtilityChart
 var networks_label: Label
 
 
@@ -26,12 +29,21 @@ func _ready() -> void:
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
 		margin.add_theme_constant_override(side, 14)
 	add_child(margin)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 8)
+	margin.add_child(outer)
+	# Three utilities do not fit a 720-tall window, so the body scrolls.
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 470)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
-	margin.add_child(col)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var head := HBoxContainer.new()
-	col.add_child(head)
+	outer.add_child(head)
+	outer.add_child(scroll)
+	scroll.add_child(col)
 	var title := Label.new()
 	title.text = "Utilities"
 	title.add_theme_font_size_override("font_size", 18)
@@ -61,6 +73,19 @@ func _ready() -> void:
 	water_chart.title_text = "Water over time"
 	water_chart.unit = "units"
 	col.add_child(water_chart)
+
+	col.add_child(HSeparator.new())
+
+	waste_stat = Label.new()
+	col.add_child(waste_stat)
+	waste_meter = UtilityMeter.new()
+	col.add_child(waste_meter)
+	waste_chart = UtilityChart.new()
+	waste_chart.title_text = "Refuse over time"
+	waste_chart.unit = "units"
+	waste_chart.demand_name = "Produced"
+	waste_chart.capacity_name = "Processed"
+	col.add_child(waste_chart)
 
 	networks_label = Label.new()
 	networks_label.add_theme_font_size_override("font_size", 12)
@@ -93,8 +118,10 @@ func _refresh_if_open() -> void:
 func refresh() -> void:
 	_set_stat(power_stat, power_meter, "Power", GameState.power_demand, GameState.power_supply, "MW")
 	_set_stat(water_stat, water_meter, "Water", GameState.water_demand, GameState.water_supply, "units")
+	_set_stat(waste_stat, waste_meter, "Refuse", GameState.waste_production, GameState.waste_capacity, "units")
 	power_chart.set_series(GameState.power_demand_history, GameState.power_supply_history)
 	water_chart.set_series(GameState.water_demand_history, GameState.water_supply_history)
+	waste_chart.set_series(GameState.waste_production_history, GameState.waste_capacity_history)
 	var p := GameState.power_networks.size()
 	var w := GameState.water_networks.size()
 	var parts: Array[String] = []

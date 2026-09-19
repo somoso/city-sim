@@ -2,6 +2,9 @@ class_name ZoneGrowth
 extends RefCounted
 ## Develops, upgrades and abandons zoned lots based on demand, services and land value.
 
+## How much slower a derelict lot redevelops until it is cleared.
+const ABANDONED_GROWTH_PENALTY := 0.25
+
 
 static func run(grid: CityGrid, state, rng: RandomNumberGenerator) -> Dictionary:
 	var stats := { "grown": 0, "abandoned": 0 }
@@ -29,6 +32,8 @@ static func run(grid: CityGrid, state, rng: RandomNumberGenerator) -> Dictionary
 			# Undeveloped lots grow a bit faster so new zones fill in.
 			if grid.level[i] == 0:
 				p *= 1.4
+			if grid.abandoned[i] == 1:
+				p *= Balance.num("society.abandoned_growth_penalty", ABANDONED_GROWTH_PENALTY)
 			# Residents want somewhere to work; without jobs growth crawls.
 			if z == Constants.Zone.RES and state.jobs_total > 0:
 				p *= 0.5 + 0.5 * grid.commute[i]
@@ -36,11 +41,17 @@ static func run(grid: CityGrid, state, rng: RandomNumberGenerator) -> Dictionary
 			var next_level := grid.level[i] + 1
 			if next_level > grid.zone_density[i]:
 				continue
+			# Schools, universities and the shape of the existing city gate the denser
+			# zones, so a player cannot jump straight to towers.
+			if Society.growth_blocker(state, z, grid.zone_density[i]) != "":
+				continue
 			if next_level >= 2 and lv < 25.0:
 				continue
 			if next_level >= 3 and lv < 45.0:
 				continue
 			p *= 1.0 / float(next_level)
+			# Refuse left in the street puts people off moving in.
+			p *= clampf(0.25 + 0.75 * state.waste_served, 0.25, 1.0)
 			# Pollution and crime discourage residents and shops.
 			if z != Constants.Zone.IND:
 				p *= clampf(1.0 - grid.pollution[i] / 120.0, 0.1, 1.0)
@@ -58,6 +69,8 @@ static func run(grid: CityGrid, state, rng: RandomNumberGenerator) -> Dictionary
 				p_decay = (-demand - 30.0) / 70.0 * 0.12
 			if z == Constants.Zone.RES and grid.crime[i] > 70.0:
 				p_decay += 0.05
+			if state.waste_served < 0.6:
+				p_decay += 0.03
 			if rng.randf() < p_decay:
 				grid.set_level(i, grid.level[i] - 1)
 				if grid.level[i] > 0:
@@ -67,6 +80,8 @@ static func run(grid: CityGrid, state, rng: RandomNumberGenerator) -> Dictionary
 					# is losing buildings rather than just watching the population drop.
 					grid.abandoned[i] = 1
 				stats["abandoned"] += 1
+		# An abandoned lot is derelict until it is cleared, so it redevelops slowly.
+		# Bulldozing it, by hand or with a demolition depot, removes that drag.
 		# Wealth drifts toward what the land value supports.
 		if grid.level[i] > 0 and grid.age[i] % 6 == 0:
 			var target := _wealth_for(lv)

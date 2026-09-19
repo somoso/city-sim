@@ -84,6 +84,15 @@ func _build_utilities() -> void:
 	game.apply_tool_at(T.PARK, ox + 18, oy + 1, 0, 0)
 	game.apply_tool_at(T.PARK, ox + 19, oy + 1, 0, 0)
 	game.apply_tool_at(T.HOSPITAL, ox + 1, oy + 15, 0, 0)
+	# The newer civic varieties, so the demo shows them off.
+	game.apply_tool_at(T.NURSERY, ox + 10, oy + 1, 0, 0)
+	game.apply_tool_at(T.UNIVERSITY, ox + 5, oy + 15, 0, 0)
+	game.apply_tool_at(T.GP_SURGERY, ox + 14, oy + 1, 0, 0)
+	game.apply_tool_at(T.FIRE_HELIPAD, ox + 17, oy + 15, 0, 0)
+	game.apply_tool_at(T.PRISON, ox + 9, oy + 15, 0, 0)
+	game.apply_tool_at(T.LANDFILL, ox + 13, oy + 15, 0, 0)
+	game.apply_tool_at(T.RECYCLING_CENTRE, ox + 15, oy + 15, 0, 0)
+	game.apply_tool_at(T.DEMOLITION_DEPOT, ox + 20, oy + 1, 0, 0)
 
 
 func _save_shot(name: String) -> void:
@@ -140,6 +149,12 @@ func _process(_delta: float) -> void:
 			game.hud.utility_panel.toggle()
 		36:
 			_save_shot("07_utilities")
+			game.hud.utility_panel.hide_panel()
+			game.hud.civic_panel.toggle()
+		37:
+			_save_shot("07b_civic")
+			game.hud.civic_panel.hide_panel()
+			game.hud.utility_panel.toggle()
 			game.hud.utility_panel.power_chart._hover_index = maxi(GameState.power_demand_history.size() - 18, 0)
 			game.hud.utility_panel.power_chart.queue_redraw()
 		38:

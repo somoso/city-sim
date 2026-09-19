@@ -16,4 +16,6 @@ signal overlay_changed(overlay: int)
 signal tile_selected(index: int)
 ## Totals of lots/buildings missing each service: { "road": int, "power": int, "water": int }.
 signal alerts_changed(counts: Dictionary)
+## The tunable numbers in data/balance.json were edited and reloaded.
+signal balance_reloaded
 signal message(text: String)

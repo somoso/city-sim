@@ -28,6 +28,18 @@ var water_demand := 0.0
 var power_networks: Array = []
 var water_networks: Array = []
 
+## Refuse: units produced per month, units the city can process, and the share collected.
+var waste_production := 0.0
+var waste_capacity := 0.0
+var waste_served := 1.0
+
+## Population make-up, used to gate the denser zones.
+var educated_share := 0.0
+var university_share := 0.0
+var nursery_share := 0.0
+var medium_res_share := 0.0
+var has_education_building := false
+
 ## Rolling monthly history for the utilisation graphs, oldest first.
 var power_demand_history := PackedFloat32Array()
 var power_supply_history := PackedFloat32Array()
@@ -35,6 +47,8 @@ var water_demand_history := PackedFloat32Array()
 var water_supply_history := PackedFloat32Array()
 var population_history := PackedFloat32Array()
 var employed_history := PackedFloat32Array()
+var waste_production_history := PackedFloat32Array()
+var waste_capacity_history := PackedFloat32Array()
 var last_income := { "R": 0.0, "C": 0.0, "I": 0.0, "total": 0.0 }
 var last_expenses := {}
 var last_expenses_total := 0.0
@@ -63,7 +77,7 @@ func new_city(width: int, height: int, seed_value: int, name: String, disasters:
 	disasters_enabled = disasters
 	rng.seed = seed_value
 	TerrainGenerator.generate(grid, seed_value)
-	funds = Constants.START_FUNDS
+	funds = Balance.int_val("economy.start_funds", Constants.START_FUNDS)
 	year = Constants.START_YEAR
 	month = 0
 	months_elapsed = 0
@@ -75,6 +89,14 @@ func new_city(width: int, height: int, seed_value: int, name: String, disasters:
 	ind_jobs = 0
 	jobs_total = 0
 	employed = 0
+	educated_share = 0.0
+	university_share = 0.0
+	nursery_share = 0.0
+	medium_res_share = 0.0
+	has_education_building = false
+	waste_production = 0.0
+	waste_capacity = 0.0
+	waste_served = 1.0
 	speed = 1
 	current_tool = Constants.Tool.NONE
 	current_overlay = Constants.Overlay.NONE
@@ -110,6 +132,8 @@ func _clear_history() -> void:
 	water_supply_history = PackedFloat32Array()
 	population_history = PackedFloat32Array()
 	employed_history = PackedFloat32Array()
+	waste_production_history = PackedFloat32Array()
+	waste_capacity_history = PackedFloat32Array()
 
 
 func _record_history() -> void:
@@ -119,6 +143,8 @@ func _record_history() -> void:
 	_push_history(water_supply_history, water_supply)
 	_push_history(population_history, float(population))
 	_push_history(employed_history, float(employed))
+	_push_history(waste_production_history, waste_production)
+	_push_history(waste_capacity_history, waste_capacity)
 
 
 func _push_history(buffer: PackedFloat32Array, value: float) -> void:
@@ -191,6 +217,11 @@ func to_dict() -> Dictionary:
 		"tax": tax,
 		"funding": funding,
 		"disasters_enabled": disasters_enabled,
+		"society": {
+			"educated": educated_share,
+			"university": university_share,
+			"nursery": nursery_share,
+		},
 		"rng_state": rng.state,
 		"news": news,
 		"history": {
@@ -200,6 +231,8 @@ func to_dict() -> Dictionary:
 			"water_supply": Array(water_supply_history),
 			"population": Array(population_history),
 			"employed": Array(employed_history),
+			"waste_production": Array(waste_production_history),
+			"waste_capacity": Array(waste_capacity_history),
 		},
 		"grid": g,
 	}
@@ -239,6 +272,10 @@ func from_dict(d: Dictionary) -> bool:
 		if d.get("funding", {}).has(k):
 			funding[k] = int(d["funding"][k])
 	disasters_enabled = bool(d.get("disasters_enabled", false))
+	var society: Dictionary = d.get("society", {})
+	educated_share = float(society.get("educated", 0.0))
+	university_share = float(society.get("university", 0.0))
+	nursery_share = float(society.get("nursery", 0.0))
 	rng.seed = map_seed
 	if d.has("rng_state"):
 		rng.state = int(d["rng_state"])
@@ -249,7 +286,8 @@ func from_dict(d: Dictionary) -> bool:
 	var hist: Dictionary = d.get("history", {})
 	for entry in [["power_demand", power_demand_history], ["power_supply", power_supply_history],
 			["water_demand", water_demand_history], ["water_supply", water_supply_history],
-			["population", population_history], ["employed", employed_history]]:
+			["population", population_history], ["employed", employed_history],
+			["waste_production", waste_production_history], ["waste_capacity", waste_capacity_history]]:
 		var buffer: PackedFloat32Array = entry[1]
 		for v in hist.get(entry[0], []):
 			buffer.append(float(v))

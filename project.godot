@@ -19,8 +19,10 @@ config/icon="res://icon.svg"
 [autoload]
 
 Events="*res://scripts/autoload/events.gd"
+Balance="*res://scripts/autoload/balance.gd"
 GameState="*res://scripts/autoload/game_state.gd"
 SaveManager="*res://scripts/autoload/save_manager.gd"
+Music="*res://scripts/autoload/music.gd"
 
 [display]
 

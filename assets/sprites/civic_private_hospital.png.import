@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b61wq6ecntnar"
-path="res://.godot/imported/civic_police.png-9b3ceb4594ff12c3573ef36db2090066.ctex"
+uid="uid://ocaplyvamsar"
+path="res://.godot/imported/civic_private_hospital.png-2082505352b82788ed9440baf3167ad9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/civic_police.png"
-dest_files=["res://.godot/imported/civic_police.png-9b3ceb4594ff12c3573ef36db2090066.ctex"]
+source_file="res://assets/sprites/civic_private_hospital.png"
+dest_files=["res://.godot/imported/civic_private_hospital.png-2082505352b82788ed9440baf3167ad9.ctex"]
 
 [params]
 

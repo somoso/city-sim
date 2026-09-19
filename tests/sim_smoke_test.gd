@@ -45,6 +45,32 @@ func _largest_block(grid: CityGrid, zone: int) -> Vector2i:
 	return best
 
 
+## Editing balance.json has to take effect, and a broken file has to be survivable.
+func _check_balance_reload() -> void:
+	var path := Balance.USER_FILE
+	var before := Balance.num("buildings.landfill.cost", 0.0)
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string(JSON.stringify({ "buildings": { "landfill": { "cost": 4321 } } }))
+	file.close()
+	Balance.reload()
+	check(Balance.num("buildings.landfill.cost", 0.0) == 4321.0, "an edited balance file overrides the shipped value")
+	check(int(BuildingDefs.def_value(Constants.Building.LANDFILL, "cost", 0)) == 4321, "and the catalogue picks it up")
+	check(Balance.num("buildings.landfill.waste_out", 0.0) == 300.0, "untouched keys keep their shipped value")
+
+	# A corrupt override must not take the game down with it.
+	file = FileAccess.open(path, FileAccess.WRITE)
+	file.store_string("{ this is not json")
+	file.close()
+	Balance.reload()
+	check(Balance.last_error() != "", "a corrupt file is reported (%s)" % Balance.last_error())
+	check(Balance.num("buildings.landfill.cost", 0.0) == 4321.0, "and the last good values stay in force")
+
+	DirAccess.remove_absolute(path)
+	Balance.reload()
+	check(Balance.num("buildings.landfill.cost", 0.0) == before, "removing the override restores the shipped value")
+	check(Balance.last_error() == "", "and the error clears")
+
+
 func _find_land_rect(grid: CityGrid, w: int, h: int) -> Vector2i:
 	for y in range(0, grid.height - h):
 		for x in range(0, grid.width - w):
@@ -140,6 +166,20 @@ func _ready() -> void:
 			unserved += 1
 	check(unserved == 0, "every zoned lot has road access after auto-roads (%d without)" % unserved)
 
+	# Denser zones are gated on what the city has built and who lives in it.
+	check(Society.growth_blocker(GameState, Constants.Zone.RES, 1) == "", "low housing has no prerequisite")
+	check(Society.growth_blocker(GameState, Constants.Zone.RES, 2) != "", "medium housing is blocked without a school")
+	tools.apply_point(Constants.Tool.NURSERY, ox + 6, oy + 1)
+	Simulation.refresh(grid, GameState)
+	check(GameState.has_education_building, "a nursery counts as an education building")
+	check(Society.growth_blocker(GameState, Constants.Zone.RES, 2) == "", "medium housing unblocks once one is built")
+	check(Society.growth_blocker(GameState, Constants.Zone.RES, 3).contains("high school"), "high housing still wants schooling")
+	check(Society.growth_blocker(GameState, Constants.Zone.COM, 3).contains("university"), "high commercial wants graduates")
+
+	# Refuse: homes put it out, and tips take it away.
+	check(Constants.zone_waste(1) == 5.0 and Constants.zone_waste(2) == 3.0 and Constants.zone_waste(3) == 7.0,
+		"waste per density is 5 / 3 / 7")
+
 	# Commercial blocks are capped at 2 x 5, so a long strip gets a cross street.
 	var com_block := _largest_block(grid, Constants.Zone.COM)
 	check(mini(com_block.x, com_block.y) <= 2 and maxi(com_block.x, com_block.y) <= 5,
@@ -205,6 +245,21 @@ func _ready() -> void:
 	check(served_flagged == 0, "fully served lots raise no alert (%d did)" % served_flagged)
 	check(Alerts.mask_for("power") == Alerts.NO_POWER and Alerts.mask_for("nope") == Alerts.NONE, "alert kind lookup")
 
+	# Refuse has to be collected once homes exist.
+	Waste.run(grid, GameState)
+	check(GameState.waste_production > 0.0, "homes produce refuse (%.0f units)" % GameState.waste_production)
+	check(GameState.waste_capacity == 0.0 and GameState.waste_served < 1.0, "with no tip, refuse goes uncollected")
+	var tip := tools.apply_point(Constants.Tool.LANDFILL, ox + 14, oy + 1)
+	check(tip, "landfill placed")
+	Simulation.refresh(grid, GameState)
+	check(GameState.waste_capacity > 0.0, "the landfill adds capacity (%.0f units)" % GameState.waste_capacity)
+	var refuse_alerts := Alerts.compute(grid, GameState)
+	check(refuse_alerts["counts"].has("waste"), "refuse is an alert kind")
+
+	# A demolition depot clears derelict lots on its own.
+	check(Demolition.batch_size() == 100, "demolition clears 100 lots at a time")
+	check(Demolition.cooldown_seconds() == 30.0, "and rests 30 seconds between sweeps")
+
 	# Cutting the power off must make lots decay and report themselves as abandoned.
 	for i in range(grid.size):
 		if grid.building[i] == Constants.Building.POWER_COAL or grid.building[i] == Constants.Building.POWER_WIND:
@@ -218,6 +273,18 @@ func _ready() -> void:
 	check(abandoned_tiles > 0, "lots are marked abandoned after losing power (%d)" % abandoned_tiles)
 	var cut := Alerts.compute(grid)
 	check(cut["counts"]["abandoned"] == abandoned_tiles, "abandoned lots are reported as alerts (%d)" % cut["counts"]["abandoned"])
+
+	check(not Demolition.has_working_depot(grid), "no depot yet")
+	tools.apply_point(Constants.Tool.DEMOLITION_DEPOT, ox + 16, oy + 1)
+	Simulation.refresh(grid, GameState)
+	var swept := Demolition.sweep(grid, Demolition.batch_size())
+	check(swept.size() > 0 and swept.size() <= 100, "a sweep clears up to 100 lots (%d)" % swept.size())
+	var still_derelict := 0
+	for i in range(grid.size):
+		if grid.abandoned[i] == 1:
+			still_derelict += 1
+	check(still_derelict < abandoned_tiles, "derelict lots go down after a sweep (%d left of %d)" % [still_derelict, abandoned_tiles])
+
 
 	# Disasters must not crash.
 	GameState.post_message(FireSim.trigger_tornado(grid, GameState.rng))
@@ -235,6 +302,14 @@ func _ready() -> void:
 	for i in range(grid.size):
 		if grid.abandoned[i] == 1:
 			abandoned_before += 1
+
+	# Balance values come from data/balance.json and fall back to the code on a bad file.
+	check(Balance.num("buildings.landfill.waste_out", 0.0) == 300.0, "balance.json supplies the landfill capacity")
+	check(Balance.num("buildings.nonexistent.cost", 1234.0) == 1234.0, "a missing key falls back")
+	check(Balance.nums("zones.res.waste", [0.0, 1.0, 1.0, 1.0]) == [0.0, 5.0, 3.0, 7.0], "and arrays load")
+	check(int(BuildingDefs.def_value(Constants.Building.DEMOLITION_DEPOT, "cost", 0)) == 10000, "the depot costs $10,000")
+	check(int(BuildingDefs.def_value(Constants.Building.DEMOLITION_DEPOT, "upkeep", 0)) == 300, "and $300 a month")
+	_check_balance_reload()
 	check(SaveManager.save_city("smoke_test"), "saved city")
 	GameState.new_city(32, 32, 1, "Other", false)
 	check(SaveManager.load_city("smoke_test"), "loaded city")

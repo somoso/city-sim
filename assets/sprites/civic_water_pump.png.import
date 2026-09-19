@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b61jnm151cl1n"
-path="res://.godot/imported/civic_pump.png-0c26beddfab9cec3113118a884c0e068.ctex"
+uid="uid://bl724aemqd0kl"
+path="res://.godot/imported/civic_water_pump.png-853e1b7dac2125c0173ab6eb0fc4bc7f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/civic_pump.png"
-dest_files=["res://.godot/imported/civic_pump.png-0c26beddfab9cec3113118a884c0e068.ctex"]
+source_file="res://assets/sprites/civic_water_pump.png"
+dest_files=["res://.godot/imported/civic_water_pump.png-853e1b7dac2125c0173ab6eb0fc4bc7f.ctex"]
 
 [params]
 

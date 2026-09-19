@@ -16,6 +16,8 @@ the project has no third-party art and opens and runs from a plain checkout.
 
 ![Budget panel, tile info and a zoning drag preview](docs/screenshots/ui.png)
 
+![Civic services panel showing coverage and cost per resident](docs/screenshots/civic.png)
+
 ## Running the game
 
 1. Install [Godot 4.7](https://godotengine.org/download) (the standard build; .NET is not needed).
@@ -39,7 +41,8 @@ godot --path /path/to/city-sim
 | Lay roads | Pick Road, then left-click-drag (an L-shaped path is previewed) |
 | Place a building | Pick it from Utilities or Civic, then left-click |
 | Inspect a tile | Query tool (or no tool) and left-click |
-| Power and water graphs | Utilities button in the top bar |
+| Power, water and refuse graphs | Utilities button in the top bar |
+| Civic coverage and cost | Civic button in the top bar |
 | Residents vs employed | Graph in the top bar |
 | Cancel tool / close panel | Right-click or `Esc` |
 | Pause / speed | `Space`, `1`, `2`, `3`, or the buttons in the top bar |
@@ -86,6 +89,66 @@ Utility and civic buildings raise the same warnings when they lack what they nee
 a water pump built away from water. Road access takes priority: while a lot has no road, that
 is the only warning it shows, because power and water travel along roads anyway.
 
+## Refuse
+
+Homes put out refuse every month, by density: 5 units for a low-density lot, 3 for medium,
+7 for high, multiplied by the building's level. Three buildings take it away:
+
+| Building | Handles | Notes |
+| --- | --- | --- |
+| Landfill | 300 units | Cheap, and heavily polluting |
+| Incinerator | 700 units | Needs power, much less polluting than tipping |
+| Recycling Centre | 500 units | Needs power and water, almost clean, expensive |
+
+Refuse is city-wide rather than per network, since collection lorries use the roads.
+Whatever the city cannot process rots where it was produced: it raises pollution, slows
+development, and pushes lots toward abandonment.
+
+## Abandoned lots
+
+A lot that developed and then lost its building is marked **abandoned**. It is not a dead
+end, but it is a drag on the city:
+
+- It still counts as zoned, so it can be rebuilt on, but it redevelops at a quarter of the
+  normal rate while it stays derelict.
+- It raises crime and pollution nearby and drags the local land value down.
+- It flashes its own badge and appears in the Problems banner.
+
+**What to do with one:** fix whatever caused it, then clear the lot. Bulldozing resets it
+to clean land at $5 a tile, after which it develops at full speed again. De-zoning also
+clears the marker if you would rather use the land for something else. A city that leaves
+its derelict lots standing gets a slow spiral: falling land value, rising crime, and more
+abandonment.
+
+Clearing them by hand gets tedious once a city is large, which is what the **Demolition
+Depot** is for. It costs $10,000 and $300 a month, and its crews clear up to 100 derelict
+lots and piles of rubble at a time, then rest for 30 seconds before the next sweep.
+
+## Growth requirements
+
+Density is not just a matter of demand. The denser zones will not develop until the city
+can support them, and the Query tool says exactly what is missing on any lot:
+
+| Zone | Requires |
+| --- | --- |
+| Medium residential | Any education building in the city |
+| High residential | 40% of residents schooled to high school |
+| Medium commercial | 25% of residents living in medium-density housing |
+| High commercial | 20% of residents university educated |
+
+Schooling is a stock, not a switch: building a high school raises the educated share over
+the following months rather than instantly. All four thresholds are in `data/balance.json`.
+
+## Tuning the numbers
+
+Every number that matters lives in `data/balance.json`: costs, upkeep, outputs, radii,
+block sizes, waste per density, the growth thresholds above, and the demolition depot's
+batch and cooldown. Edit the file while the game is running and it reloads within a second.
+
+A file that is missing, malformed or half-typed is ignored with a warning and the previous
+values stay in force, so a typo can never leave the game unplayable. A personal override
+can also be put in `user://balance.json`, which is read after the shipped file.
+
 ## Zoning and block sizes
 
 Dragging a zone does not fail when the lots are out of reach of a road. The game works out
@@ -118,8 +181,12 @@ Every simulated month the following systems run in order (see `scripts/sim/simul
   network's demand exceeds supply, tiles furthest from the source lose service first. Each
   separately connected grid is tracked on its own, so the Query tool can report the local
   network rather than only the city-wide total.
-- **Services** – police, fire, school, hospital and park coverage radiate from each building,
-  scaled by its department funding. Unpowered services run at reduced strength.
+- **Services** – police, fire, health, nursery, school, university and park coverage radiate
+  from each building, scaled by its department funding. Unpowered services run at reduced
+  strength. Each service comes in several sizes, from a GP surgery to a private hospital.
+- **Society** – works out how many residents hold a job, how many have been schooled, and
+  what share live in medium-density housing. These gate the denser zones.
+- **Waste** – totals what the city puts out against what it can process.
 - **Environment** – pollution (industry, coal, traffic, fires), crime (density, poverty,
   unemployment, minus police), land value (water, elevation, parks, services, minus
   pollution/crime/industry) and fire risk.
@@ -158,7 +225,10 @@ base and has been checked from 1000x760 up to 1680x820.
 ```
 project.godot            Godot project (autoloads, display settings)
 assets/sprites/          Generated PNG sprites (see Graphics)
+data/balance.json        Every tunable number, hot-reloaded while the game runs
 tools/generate_sprites.py  Sprite generator
+tools/generate_music.py  Background music generator
+assets/audio/            Generated placeholder music
 scenes/
   main_menu.tscn         Title screen
   game.tscn              Game scene: render layers, camera, HUD
@@ -166,6 +236,8 @@ scripts/
   autoload/              Events (signal bus), GameState (city data), SaveManager (JSON saves)
   core/                  Constants, BuildingDefs catalogue, CityGrid data model, TerrainGenerator
   sim/                   One file per simulation system plus the Simulation orchestrator
+                         (roads, utilities, waste, services, society, environment, demand,
+                         growth, fire, budget, alerts, civic stats, demolition)
   game/                  GameController (input, clock) and BuildTools (applying tools)
   render/                IsoMath, Sprites loader, chunked terrain/world/overlay layers,
                          alerts, cursor, camera
@@ -195,6 +267,18 @@ Both exit with code 0 on success and print `ALL ... CHECKS PASSED`.
 ```sh
 xvfb-run -a godot --path . --resolution 1280x720 tests/screenshot_capture.tscn -- --out=/tmp/shots
 ```
+
+## Music
+
+`tools/generate_music.py` synthesises the placeholder soundtrack: a twelve-bar jazz blues
+in F at 96 BPM, which comes to exactly 30 seconds so it loops on the downbeat. Walking
+bass, comped piano, brushed drums and a sparse head, all from the standard library.
+
+```sh
+python3 tools/generate_music.py
+```
+
+Music can be muted and its volume set from the in-game Menu.
 
 ## Ideas for what comes next
 

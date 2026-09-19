@@ -870,7 +870,7 @@ def civic_coal():
     chimney(cv, Lt[0] + 70, Lt[1] - 4, 16, 70, (130, 125, 122, 255))
     # Conveyor / cooling unit.
     cv.rect(Rt[0] - 44, Rt[1] + 4, 30, 14, shade(wall, 1.2))
-    cv.save(os.path.join(OUT, "civic_coal.png"))
+    cv.save(os.path.join(OUT, "civic_coal_plant.png"))
 
 
 def civic_wind():
@@ -890,7 +890,7 @@ def civic_wind():
         ey = hub[1] - math.sin(a) * 42
         cv.line(hub[0], hub[1], ex, ey, (240, 240, 245, 255), 4)
         cv.line(hub[0], hub[1], ex, ey, (190, 190, 200, 255), 1)
-    cv.save(os.path.join(OUT, "civic_wind.png"))
+    cv.save(os.path.join(OUT, "civic_wind_turbine.png"))
 
 
 def civic_nuclear():
@@ -924,7 +924,7 @@ def civic_nuclear():
     cv.ellipse(tx, ty - 90, 20, 6, shade(tower, 0.7))
     for k in range(4):
         cv.ellipse(tx + k * 6, ty - 100 - k * 12, 16 + k * 4, 9 + k * 2, (240, 240, 245, 140 - k * 30))
-    cv.save(os.path.join(OUT, "civic_nuclear.png"))
+    cv.save(os.path.join(OUT, "civic_nuclear_plant.png"))
 
 
 def civic_pump():
@@ -941,7 +941,7 @@ def civic_pump():
     cy = (Tt[1] + Bt[1]) / 2
     cv.ellipse(cx, cy, 8, 4, (200, 210, 220, 255))
     cv.rect(cx - 2, cy - 14, 4, 14, (200, 210, 220, 255))
-    cv.save(os.path.join(OUT, "civic_pump.png"))
+    cv.save(os.path.join(OUT, "civic_water_pump.png"))
 
 
 def civic_tower():
@@ -968,7 +968,7 @@ def civic_tower():
     for z in range(0, 12):
         r = math.sqrt(144 - z * z) / 12.0
         cv.ellipse(cx, cy - th - z * 0.9, rx * r, ry * r, mix((70, 90, 120, 255), (110, 130, 160, 255), z / 12.0))
-    cv.save(os.path.join(OUT, "civic_tower.png"))
+    cv.save(os.path.join(OUT, "civic_water_tower.png"))
 
 
 def civic_service(name, wall, roof, s, h, decorate):
@@ -1069,6 +1069,244 @@ def deco_hospital(cv, iso, base, top, h):
     cv.rect(B[0] + 8, B[1] - 20, 26, 14, (170, 210, 240, 255))
 
 
+def deco_prison(cv, iso, base, top, h, towers=1, wall_colour=(140, 138, 134, 255)):
+    """A perimeter wall with watch towers, and a bare exercise yard."""
+    s = iso.s
+    ring = [iso.p(0.04, 0.04), iso.p(s - 0.04, 0.04), iso.p(s - 0.04, s - 0.04), iso.p(0.04, s - 0.04)]
+    for k in range(4):
+        a = ring[k]
+        b = ring[(k + 1) % 4]
+        cv.fill_poly([a, b, (b[0], b[1] - 16), (a[0], a[1] - 16)], wall_colour)
+        cv.outline([a, b, (b[0], b[1] - 16), (a[0], a[1] - 16)], shade(wall_colour, 0.6))
+    for k in range(towers):
+        tx, ty = iso.p(0.1 + k * (s - 0.2), 0.1)
+        cv.rect(tx - 7, ty - 44, 14, 44, shade(wall_colour, 1.1))
+        cv.rect(tx - 10, ty - 52, 20, 10, (92, 90, 88, 255))
+        cv.rect(tx - 3, ty - 50, 6, 4, (250, 240, 170, 255))
+
+
+def deco_high_security(cv, iso, base, top, h):
+    deco_prison(cv, iso, base, top, h, towers=2, wall_colour=(116, 116, 120, 255))
+    Tt, Rt, Bt, Lt = top
+    cx = (Tt[0] + Bt[0]) / 2
+    cy = (Tt[1] + Bt[1]) / 2
+    # Searchlight beam off the roof.
+    cv.fill_poly([(cx, cy - 6), (cx + 46, cy - 34), (cx + 46, cy - 12)], (255, 250, 200, 70))
+    cv.ellipse(cx, cy - 4, 7, 5, (250, 245, 190, 255))
+
+
+def deco_gp(cv, iso, base, top, h):
+    T, R, B, L = base
+    Tt, Rt, Bt, Lt = top
+    cx = (Tt[0] + Bt[0]) / 2
+    cy = (Tt[1] + Bt[1]) / 2
+    cv.rect(cx - 8, cy - 2, 16, 5, (40, 160, 90, 255))
+    cv.rect(cx - 2, cy - 8, 5, 17, (40, 160, 90, 255))
+    cv.rect(B[0] - 4, B[1] - 16, 9, 14, (70, 60, 50, 255))
+
+
+def deco_community_hospital(cv, iso, base, top, h):
+    T, R, B, L = base
+    Tt, Rt, Bt, Lt = top
+    cx = (Tt[0] + Bt[0]) / 2
+    cy = (Tt[1] + Bt[1]) / 2
+    cv.rect(cx - 12, cy - 3, 24, 7, (214, 48, 48, 255))
+    cv.rect(cx - 3, cy - 12, 7, 25, (214, 48, 48, 255))
+    # Ambulance at the door.
+    ax, ay = iso.p(1.55, 1.65)
+    cv.ellipse(ax, ay, 13, 5, (30, 30, 30, 170))
+    cv.rect(ax - 11, ay - 11, 22, 9, (244, 244, 248, 255))
+    cv.rect(ax - 5, ay - 16, 12, 6, (230, 235, 240, 255))
+    cv.rect(ax - 11, ay - 8, 8, 3, (214, 48, 48, 255))
+
+
+def deco_private_hospital(cv, iso, base, top, h):
+    T, R, B, L = base
+    Tt, Rt, Bt, Lt = top
+    cx = (Tt[0] + Bt[0]) / 2
+    cy = (Tt[1] + Bt[1]) / 2
+    # Gold banding along the top of both visible faces marks it out as the paid option.
+    gold = (214, 178, 84, 255)
+    for p0, p1 in ((L, B), (B, R)):
+        cv.fill_poly([(p0[0], p0[1] - h + 9), (p1[0], p1[1] - h + 9),
+                      (p1[0], p1[1] - h + 1), (p0[0], p0[1] - h + 1)], gold)
+    cv.ellipse(cx, cy, 30, 15, (108, 132, 156, 255))
+    cv.rect(cx - 14, cy - 3, 28, 7, (214, 48, 48, 255))
+    cv.rect(cx - 3, cy - 12, 7, 25, (214, 48, 48, 255))
+    cv.fill_poly([(cx - 16, cy - 26), (cx + 16, cy - 26), (cx + 12, cy - 34), (cx - 12, cy - 34)], gold)
+
+
+def deco_nursery(cv, iso, base, top, h):
+    """A single-tile building, so the play things sit on the strip of lot in front."""
+    Tt, Rt, Bt, Lt = top
+    cx = (Tt[0] + Bt[0]) / 2
+    cy = (Tt[1] + Bt[1]) / 2
+    # Bunting across the roof ridge.
+    for k, colour in enumerate([(220, 70, 70, 255), (70, 130, 220, 255), (240, 190, 60, 255), (90, 190, 110, 255)]):
+        cv.fill_poly([(cx - 18 + k * 10, cy - 6), (cx - 12 + k * 10, cy - 6), (cx - 15 + k * 10, cy + 1)], colour)
+    # A ball and a small slide on the lot in front of the door.
+    px, py = iso.p(0.5, 0.92)
+    cv.ellipse(px + 14, py - 3, 5, 5, (230, 90, 80, 255))
+    cv.fill_poly([(px - 20, py), (px - 8, py), (px - 8, py - 13), (px - 14, py - 13)], (110, 175, 95, 255))
+    cv.rect(px - 15, py - 15, 3, 15, (170, 170, 175, 255))
+
+
+def deco_university(cv, iso, base, top, h):
+    T, R, B, L = base
+    Tt, Rt, Bt, Lt = top
+    cx = (Tt[0] + Bt[0]) / 2
+    cy = (Tt[1] + Bt[1]) / 2
+    stone = (206, 198, 178, 255)
+    # Central dome.
+    R_dome = 26
+    for z in range(0, R_dome):
+        r = math.sqrt(R_dome * R_dome - z * z)
+        cv.ellipse(cx, cy - z * 0.7, r, r * 0.5, mix((150, 142, 124, 255), (232, 226, 208, 255), z / float(R_dome)))
+    cv.rect(cx - 2, cy - R_dome - 14, 4, 14, (180, 160, 110, 255))
+    # Clock tower on the near corner.
+    tx, ty = (Bt[0], Bt[1])
+    cv.rect(tx - 10, ty - 56, 20, 56, stone)
+    cv.rect(tx - 10, ty - 56, 6, 56, shade(stone, 1.08))
+    cv.fill_poly([(tx - 13, ty - 56), (tx, ty - 74), (tx + 13, ty - 56)], (108, 92, 70, 255))
+    cv.ellipse(tx, ty - 44, 6, 6, (248, 244, 230, 255))
+    cv.line(tx, ty - 44, tx + 3, ty - 47, (60, 50, 40, 255), 1)
+
+
+def deco_helipad(cv, iso, base, top, h):
+    Tt, Rt, Bt, Lt = top
+    cx = (Tt[0] + Bt[0]) / 2
+    cy = (Tt[1] + Bt[1]) / 2
+    cv.ellipse(cx, cy, 34, 17, (74, 74, 78, 255))
+    cv.ellipse(cx, cy, 28, 14, (96, 96, 100, 255))
+    # An H, drawn in the tile's own perspective.
+    cv.fill_poly([(cx - 13, cy - 3), (cx - 7, cy - 6), (cx - 7, cy + 6), (cx - 13, cy + 9)], (245, 245, 245, 255))
+    cv.fill_poly([(cx + 7, cy - 6), (cx + 13, cy - 3), (cx + 13, cy + 9), (cx + 7, cy + 6)], (245, 245, 245, 255))
+    cv.fill_poly([(cx - 7, cy - 1), (cx + 7, cy - 1), (cx + 7, cy + 3), (cx - 7, cy + 3)], (245, 245, 245, 255))
+    # Helicopter hovering over it.
+    hx, hy = cx + 6, cy - 46
+    cv.ellipse(hx, hy, 15, 8, (196, 52, 44, 255))
+    cv.ellipse(hx - 7, hy - 2, 6, 4, (180, 220, 240, 255))
+    cv.fill_poly([(hx + 12, hy - 2), (hx + 34, hy - 5), (hx + 34, hy - 1), (hx + 12, hy + 2)], (196, 52, 44, 255))
+    cv.rect(hx + 30, hy - 14, 3, 12, (150, 40, 34, 255))
+    cv.line(hx - 30, hy - 12, hx + 30, hy - 12, (220, 220, 225, 255), 3)
+    cv.rect(hx - 1, hy - 14, 3, 6, (120, 120, 125, 255))
+    cv.line(hx - 12, hy + 9, hx + 12, hy + 9, (150, 150, 155, 255), 2)
+
+
+def deco_demolition(cv, iso, base, top, h):
+    Tt, Rt, Bt, Lt = top
+    # Crane with a wrecking ball, on the far corner of the yard.
+    bx, by = iso.p(1.75, 0.25)
+    steel = (226, 178, 46, 255)
+    cv.rect(bx - 5, by - 78, 10, 78, steel)
+    cv.rect(bx - 5, by - 78, 3, 78, shade(steel, 1.12))
+    cv.fill_poly([(bx - 4, by - 78), (bx - 52, by - 66), (bx - 52, by - 60), (bx - 4, by - 70)], steel)
+    cv.line(bx - 50, by - 63, bx - 50, by - 30, (80, 78, 76, 255), 2)
+    cv.ellipse(bx - 50, by - 24, 9, 9, (72, 70, 70, 255))
+    cv.ellipse(bx - 53, by - 27, 3, 3, (130, 128, 128, 255))
+    # A skip full of rubble.
+    sx, sy = iso.p(0.45, 1.7)
+    cv.fill_poly([(sx - 18, sy), (sx + 18, sy), (sx + 14, sy - 14), (sx - 14, sy - 14)], (188, 108, 38, 255))
+    cv.outline([(sx - 18, sy), (sx + 18, sy), (sx + 14, sy - 14), (sx - 14, sy - 14)], (110, 62, 20, 255))
+    rng = random.Random(9)
+    for _ in range(14):
+        cv.rect(sx + rng.randint(-12, 10), sy - 16 + rng.randint(-2, 2), 4, 3, (128, 120, 112, 255))
+
+
+def civic_landfill():
+    """A working tipping face: earth banks, mounds of refuse, and a dozer pushing it."""
+    rng = random.Random(555)
+    sz = 2
+    cv = Canvas(TW * sz, TH * sz + 90)
+    iso = Iso(cv, sz)
+    d = iso.diamond()
+    cv.fill_poly(d, (118, 100, 74, 255))
+    cv.outline(d, (84, 70, 50, 255))
+    # Access track along the near edge.
+    cv.fill_poly([iso.p(0.0, 1.55), iso.p(2.0, 1.55), iso.p(2.0, 1.9), iso.p(0.0, 1.9)], (162, 150, 126, 255))
+    refuse = [(96, 116, 84, 255), (152, 150, 156, 255), (176, 128, 96, 255), (108, 104, 112, 255),
+              (196, 186, 150, 255), (80, 110, 140, 255)]
+    for u, v, r, hgt in ((0.55, 0.55, 40, 34), (1.40, 0.80, 34, 28), (0.90, 1.15, 30, 24)):
+        x, y = iso.p(u, v)
+        # Build the mound as stacked ellipses so it has real bulk.
+        for k in range(hgt):
+            t = k / float(hgt)
+            rr = r * (1.0 - t * 0.82)
+            cv.ellipse(x, y - k * 1.0, rr, rr * 0.52, mix((104, 96, 76, 255), (158, 152, 128, 255), t))
+        # Litter showing through the cover.
+        for _ in range(90):
+            a = rng.uniform(0, math.tau)
+            rad = rng.uniform(0.0, 1.0) ** 0.5
+            px = int(x + math.cos(a) * r * rad * 0.9)
+            py = int(y - rng.uniform(0.0, hgt * 0.9) + math.sin(a) * r * 0.45 * rad)
+            cv.rect(px, py, 3, 2, rng.choice(refuse))
+        cv.outline([(x - r, y), (x, y - r * 0.5), (x + r, y), (x, y + r * 0.5)], (86, 76, 58, 255))
+    # Dozer on the track.
+    dx, dy = iso.p(1.55, 1.7)
+    cv.ellipse(dx, dy, 15, 6, (40, 36, 30, 160))
+    cv.rect(dx - 12, dy - 14, 24, 10, (218, 176, 52, 255))
+    cv.rect(dx - 12, dy - 14, 7, 10, (240, 200, 70, 255))
+    cv.rect(dx - 6, dy - 22, 12, 9, (196, 156, 44, 255))
+    cv.fill_poly([(dx + 12, dy - 16), (dx + 20, dy - 20), (dx + 20, dy - 2), (dx + 12, dy - 4)], (150, 146, 140, 255))
+    # Gulls over the tip.
+    for u, v in ((1.1, 0.25), (0.7, 0.15), (1.45, 0.4)):
+        gx, gy = iso.p(u, v)
+        gy -= rng.randint(46, 62)
+        cv.line(gx - 6, gy, gx, gy - 4, (244, 244, 248, 255), 2)
+        cv.line(gx, gy - 4, gx + 6, gy, (244, 244, 248, 255), 2)
+    cv.save(os.path.join(OUT, "civic_landfill.png"))
+
+
+def civic_incinerator():
+    rng = random.Random(556)
+    s = 2
+    h = 44
+    cv = Canvas(TW * s, TH * s + h + 120)
+    iso = Iso(cv, s)
+    lot(cv, iso, grass=(136, 132, 126, 255), pave_inset=0.0, pave=(136, 132, 126, 255))
+    wall = (146, 142, 138, 255)
+    base = iso.diamond(0.14)
+    top = draw_box(cv, base, h, wall, top_color=shade(wall, 0.78))
+    T, R, B, L = base
+    face_windows(cv, L, B, h, rng, win_w=9, win_h=6, pitch_x=15, pitch_y=12, margin_y=10, margin_x=8,
+                 lit=(250, 190, 90, 255), dark=(70, 66, 64, 255), lit_prob=0.7)
+    Tt, Rt, Bt, Lt = top
+    chimney(cv, Lt[0] + 30, Lt[1] + 8, 18, 92, (168, 162, 158, 255))
+    cv.rect(Rt[0] - 40, Rt[1] + 2, 26, 16, shade(wall, 1.12))
+    cv.save(os.path.join(OUT, "civic_incinerator.png"))
+
+
+def civic_recycling():
+    rng = random.Random(557)
+    s = 2
+    h = 34
+    cv = Canvas(TW * s, TH * s + h + 60)
+    iso = Iso(cv, s)
+    lot(cv, iso, grass=(128, 152, 116, 255), pave_inset=0.06, pave=(150, 150, 146, 255))
+    wall = (214, 214, 208, 255)
+    base = iso.sub_diamond(0.12, 0.12, 1.5, 1.88)
+    top = draw_box(cv, base, h, wall, top_color=(74, 148, 88, 255))
+    T, R, B, L = base
+    face_windows(cv, L, B, h, rng, win_w=10, win_h=8, pitch_x=16, pitch_y=100, margin_y=8, margin_x=8,
+                 lit=(226, 240, 228, 255), dark=(120, 150, 130, 255), lit_prob=0.6)
+    # Sorting bins in the yard, one per stream.
+    for k, colour in enumerate([(52, 128, 196, 255), (74, 160, 82, 255), (212, 172, 56, 255)]):
+        bx, by = iso.p(1.72, 0.45 + k * 0.5)
+        cv.rect(bx - 9, by - 20, 18, 20, colour)
+        cv.rect(bx - 9, by - 20, 5, 20, shade(colour, 1.15))
+        cv.ellipse(bx, by - 20, 9, 4, shade(colour, 1.2))
+    # Recycling arrows on the roof.
+    Tt, Rt, Bt, Lt = top
+    cx = (Tt[0] + Bt[0]) / 2
+    cy = (Tt[1] + Bt[1]) / 2
+    for k in range(3):
+        a = math.radians(90 + k * 120)
+        ax = cx + math.cos(a) * 15
+        ay = cy - math.sin(a) * 8
+        cv.fill_poly([(ax, ay - 5), (ax + 10, ay + 2), (ax - 6, ay + 5)], (238, 246, 238, 255))
+    cv.save(os.path.join(OUT, "civic_recycling_centre.png"))
+
+
 def civic_park():
     rng = random.Random(77)
     cv = Canvas(TW, TH + 50)
@@ -1129,10 +1367,22 @@ def main():
     civic_nuclear()
     civic_pump()
     civic_tower()
-    civic_service("police", (205, 208, 220, 255), (50, 70, 150, 255), 2, 44, deco_police)
+    civic_service("police_station", (205, 208, 220, 255), (50, 70, 150, 255), 2, 44, deco_police)
     civic_service("fire_station", (190, 60, 50, 255), (90, 40, 40, 255), 2, 44, deco_fire)
-    civic_service("school", (215, 150, 80, 255), (120, 70, 50, 255), 2, 40, deco_school)
+    civic_service("high_school", (215, 150, 80, 255), (120, 70, 50, 255), 2, 40, deco_school)
     civic_service("hospital", (240, 240, 244, 255), (200, 200, 205, 255), 3, 56, deco_hospital)
+    civic_service("prison", (152, 150, 146, 255), (108, 106, 104, 255), 3, 40, deco_prison)
+    civic_service("high_security_prison", (124, 124, 128, 255), (84, 84, 88, 255), 3, 44, deco_high_security)
+    civic_service("fire_helipad", (188, 62, 52, 255), (96, 44, 40, 255), 2, 40, deco_helipad)
+    civic_service("gp_surgery", (238, 236, 228, 255), (142, 92, 72, 255), 1, 26, deco_gp)
+    civic_service("community_hospital", (242, 242, 246, 255), (206, 206, 210, 255), 2, 40, deco_community_hospital)
+    civic_service("private_hospital", (222, 232, 242, 255), (176, 192, 206, 255), 3, 62, deco_private_hospital)
+    civic_service("nursery", (246, 206, 122, 255), (198, 92, 78, 255), 1, 24, deco_nursery)
+    civic_service("university", (214, 206, 186, 255), (132, 116, 92, 255), 3, 48, deco_university)
+    civic_service("demolition_depot", (222, 180, 60, 255), (128, 104, 40, 255), 2, 32, deco_demolition)
+    civic_landfill()
+    civic_incinerator()
+    civic_recycling()
     civic_park()
     print("Wrote sprites to", OUT)
 

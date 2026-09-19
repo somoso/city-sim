@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://biyfbjvng6u0d"
-path="res://.godot/imported/civic_wind.png-504145041769a8fc48a2a8f9b37aa322.ctex"
+uid="uid://lhelh2tyg3pq"
+path="res://.godot/imported/civic_fire_helipad.png-dab387fd0bdcbb3964dc524de78fb5a6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/civic_wind.png"
-dest_files=["res://.godot/imported/civic_wind.png-504145041769a8fc48a2a8f9b37aa322.ctex"]
+source_file="res://assets/sprites/civic_fire_helipad.png"
+dest_files=["res://.godot/imported/civic_fire_helipad.png-dab387fd0bdcbb3964dc524de78fb5a6.ctex"]
 
 [params]
 

@@ -34,7 +34,7 @@ func _process(_delta: float) -> void:
 			var y := clampi(start.y, 2, grid.height - 12)
 			game.apply_tool_at(Constants.Tool.ROAD, x, y, x + 9, y)
 			game.apply_tool_at(Constants.Tool.ROAD, x, y + 5, x + 9, y + 5)
-			game.apply_tool_at(Constants.Tool.ZONE_R_MED, x, y + 1, x + 4, y + 2)
+			game.apply_tool_at(Constants.Tool.ZONE_R_LOW, x, y + 1, x + 4, y + 2)
 			game.apply_tool_at(Constants.Tool.ZONE_C_HIGH, x + 5, y + 1, x + 9, y + 2)
 			game.apply_tool_at(Constants.Tool.ZONE_I_LOW, x, y + 3, x + 9, y + 4)
 			town = Vector2i(x, y)
@@ -52,6 +52,8 @@ func _process(_delta: float) -> void:
 			game.apply_tool_at(Constants.Tool.WATER_TOWER, town.x + 2, town.y - 1, 0, 0)
 			game.apply_tool_at(Constants.Tool.POLICE, town.x + 3, town.y - 2, 0, 0)
 			game.apply_tool_at(Constants.Tool.PARK, town.x + 6, town.y - 1, 0, 0)
+			game.apply_tool_at(Constants.Tool.LANDFILL, town.x + 7, town.y - 2, 0, 0)
+			game.apply_tool_at(Constants.Tool.NURSERY, town.x + 5, town.y - 1, 0, 0)
 			GameState.set_speed(3)
 			check(game.alerts_layer.counts["power"] < 5, "power alerts clear once a plant is connected (%d left)" % game.alerts_layer.counts["power"])
 		4:
@@ -99,6 +101,8 @@ func _process(_delta: float) -> void:
 			check(game.hud.utility_panel.visible, "utilities panel opens")
 			check(game.hud.utility_panel.power_chart.demand.size() > 1, "power chart has history (%d points)" % game.hud.utility_panel.power_chart.demand.size())
 			check(game.hud.utility_panel.water_chart.capacity.size() > 1, "water chart has capacity series")
+			check(game.hud.utility_panel.waste_chart.demand.size() > 1, "refuse chart has history")
+			check(game.hud.utility_panel.waste_stat.text.contains("Refuse"), "refuse stat reads: %s" % game.hud.utility_panel.waste_stat.text)
 			check(game.hud.utility_panel.power_stat.text.contains("used"), "power stat reads: %s" % game.hud.utility_panel.power_stat.text)
 			game.hud.utility_panel.power_chart._hover_index = 3
 			game.hud.utility_panel.power_chart.queue_redraw()
@@ -108,6 +112,16 @@ func _process(_delta: float) -> void:
 				"treasury shows income and expenses (%s, %s)" % [game.hud.income_label.text, game.hud.expenses_label.text])
 			check(game.hud.net_label.text.begins_with("net"), "treasury shows net (%s)" % game.hud.net_label.text)
 			check(game.hud.population_chart != null, "top bar carries the population graph")
+			# Civic utilisation panel.
+			game.hud.civic_panel.toggle()
+			check(game.hud.civic_panel.visible, "civic panel opens")
+			check(game.hud.civic_panel.rows.size() == CivicStats.GROUPS.size(), "it lists every service")
+			check(game.hud.civic_panel.rows["police"]["pct"].text.ends_with("%"), "police coverage reads %s" % game.hud.civic_panel.rows["police"]["pct"].text)
+			check(game.hud.civic_panel.rows["school"]["per"].text != "", "cost per resident is filled in (%s)" % game.hud.civic_panel.rows["school"]["per"].text)
+			game.hud.civic_panel.toggle()
+			# Background music.
+			check(Music._player != null and Music._player.stream != null, "background music loaded")
+			check(Music._player.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "and it loops")
 			game.hud.population_chart.queue_redraw()
 			var labels: Array[String] = []
 			for child in game.hud.get_children():

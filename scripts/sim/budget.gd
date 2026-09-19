@@ -7,8 +7,9 @@ static func run(grid: CityGrid, state) -> void:
 	var income_r := 0.0
 	var income_c := 0.0
 	var income_i := 0.0
-	var upkeep := { "roads": 0.0, "power": 0.0, "water": 0.0, "police": 0.0, "fire": 0.0,
-		"school": 0.0, "health": 0.0, "park": 0.0 }
+	var upkeep := { "roads": 0.0, "power": 0.0, "water": 0.0, "waste": 0.0, "police": 0.0,
+		"fire": 0.0, "school": 0.0, "health": 0.0, "park": 0.0 }
+	var income_civic := 0.0
 
 	for i in range(grid.size):
 		if grid.is_developed(i):
@@ -26,26 +27,34 @@ static func run(grid: CityGrid, state) -> void:
 	for origin in grid.civic_origins():
 		var type := grid.building[origin]
 		var def := BuildingDefs.get_def(type)
-		var base := float(def.get("upkeep", 0))
-		var kind: String = def.get("coverage", "")
+		var base := float(BuildingDefs.def_value(type, "upkeep", 0))
+		var kind: String = Services.funding_key(str(def.get("coverage", "")))
 		if kind == "":
 			if def.has("power_out"):
 				kind = "power"
 			elif def.has("water_out"):
 				kind = "water"
+			elif def.has("waste_out"):
+				kind = "waste"
 		if state.funding.has(kind):
 			base *= float(state.funding[kind]) / 100.0
 		if upkeep.has(kind):
 			upkeep[kind] += base
 		else:
 			upkeep["roads"] += base
+		# Private operations (private hospitals, prisons) pay commercial tax.
+		var tax_jobs := float(BuildingDefs.def_value(type, "tax_jobs", 0))
+		if tax_jobs > 0.0:
+			var w := float(BuildingDefs.def_value(type, "tax_wealth", 2))
+			income_civic += tax_jobs * (0.5 + 0.35 * w) * float(state.tax["C"]) / 100.0 * 7.0
 
-	var income := income_r + income_c + income_i
+	var income := income_r + income_c + income_i + income_civic
 	var expenses := 0.0
 	for k in upkeep.keys():
 		expenses += upkeep[k]
 
-	state.last_income = { "R": income_r, "C": income_c, "I": income_i, "total": income }
+	state.last_income = { "R": income_r, "C": income_c, "I": income_i,
+		"civic": income_civic, "total": income }
 	state.last_expenses = upkeep
 	state.last_expenses_total = expenses
 	state.funds += int(round(income - expenses))

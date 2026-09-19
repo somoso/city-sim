@@ -44,6 +44,8 @@ var fire_risk := PackedFloat32Array()  # 0..100
 var cov_police := PackedFloat32Array()
 var cov_fire := PackedFloat32Array()
 var cov_school := PackedFloat32Array()
+var cov_nursery := PackedFloat32Array()
+var cov_university := PackedFloat32Array()
 var cov_health := PackedFloat32Array()
 var cov_park := PackedFloat32Array()
 
@@ -80,7 +82,8 @@ static func int_layer_names() -> Array[String]:
 static func float_layer_names() -> Array[String]:
 	return [
 		"elevation", "commute", "pollution", "crime", "traffic", "land_value", "fire_risk",
-		"cov_police", "cov_fire", "cov_school", "cov_health", "cov_park",
+		"cov_police", "cov_fire", "cov_school", "cov_nursery", "cov_university",
+		"cov_health", "cov_park",
 	]
 
 
@@ -292,11 +295,11 @@ func set_level(i: int, new_level: int) -> void:
 	var d := zone_density[i]
 	match zone_type[i]:
 		Constants.Zone.RES:
-			population[i] = Constants.RES_POP_PER_LEVEL[d] * level[i]
+			population[i] = int(Constants.res_pop(d)) * level[i]
 			jobs[i] = 0
 		Constants.Zone.COM:
-			jobs[i] = Constants.COM_JOBS_PER_LEVEL[d] * level[i]
+			jobs[i] = int(Constants.com_jobs(d)) * level[i]
 			population[i] = 0
 		Constants.Zone.IND:
-			jobs[i] = Constants.IND_JOBS_PER_LEVEL[d] * level[i]
+			jobs[i] = int(Constants.ind_jobs(d)) * level[i]
 			population[i] = 0

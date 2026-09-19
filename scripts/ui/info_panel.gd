@@ -103,6 +103,17 @@ func _utility_lines(grid: CityGrid, i: int) -> Array[String]:
 				net_id + 1, stats.size(), int(round(demand)), int(round(supply)), unit, pct])
 		else:
 			lines.append("    not connected to a %s source" % name.to_lower())
+	var refuse := Waste.tile_waste(grid, i)
+	var capacity := float(BuildingDefs.def_value(grid.building[i], "waste_out", 0)) if origin_tile else 0.0
+	if refuse > 0.0 or capacity > 0.0:
+		if capacity > 0.0:
+			lines.append("  Refuse: processes %d units" % int(capacity))
+		if refuse > 0.0:
+			var collected := int(round(refuse * GameState.waste_served))
+			lines.append("  Refuse: puts out %d units, %d collected" % [int(refuse), collected])
+		lines.append("    city-wide: %d of %d units handled" % [
+			int(round(minf(GameState.waste_production, GameState.waste_capacity))),
+			int(round(GameState.waste_production))])
 	return lines
 
 
@@ -163,6 +174,9 @@ func _refresh() -> void:
 		else:
 			lines.append("Undeveloped lot")
 		lines.append("Road access: %s" % ("yes" if grid.road_access[i] == 1 else "NO"))
+		var blocker := Society.growth_blocker(GameState, z, grid.zone_density[i])
+		if blocker != "":
+			lines.append("Will not develop: %s" % blocker)
 		if z == Constants.Zone.RES:
 			lines.append("Job access: %d%%" % int(grid.commute[i] * 100))
 	if grid.burning[i] > 0:
