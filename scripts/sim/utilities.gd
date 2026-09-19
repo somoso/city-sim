@@ -5,12 +5,24 @@ extends RefCounted
 
 
 static func run(grid: CityGrid, state) -> void:
-	var power := _distribute(grid, "power_out", "power_use", Constants.ZONE_POWER_USE, grid.powered)
-	var water := _distribute(grid, "water_out", "water_use", Constants.ZONE_WATER_USE, grid.watered)
+	var power := _distribute(grid, "power_out", "power_use", Constants.ZONE_POWER_USE, grid.powered, grid.power_net)
+	var water := _distribute(grid, "water_out", "water_use", Constants.ZONE_WATER_USE, grid.watered, grid.water_net)
 	state.power_supply = power[0]
 	state.power_demand = power[1]
+	state.power_networks = power[2]
 	state.water_supply = water[0]
 	state.water_demand = water[1]
+	state.water_networks = water[2]
+
+
+## Power a single tile draws per month, for the query panel.
+static func tile_power_use(grid: CityGrid, i: int) -> float:
+	return _tile_use(grid, i, "power_use", Constants.ZONE_POWER_USE)
+
+
+## Water a single tile draws per month, for the query panel.
+static func tile_water_use(grid: CityGrid, i: int) -> float:
+	return _tile_use(grid, i, "water_use", Constants.ZONE_WATER_USE)
 
 
 static func _source_output(grid: CityGrid, origin: int, out_key: String) -> float:
@@ -37,11 +49,13 @@ static func _tile_use(grid: CityGrid, i: int, use_key: String, zone_table: Array
 	return 0.0
 
 
-## Returns [total_supply, total_demand] and fills `result` with 1 for served tiles.
-static func _distribute(grid: CityGrid, out_key: String, use_key: String, zone_table: Array, result: PackedInt32Array) -> Array:
+## Returns [total_supply, total_demand, networks], fills `result` with 1 for served tiles
+## and `net_id` with each tile's network index (-1 when it is not connected to a source).
+## `networks` holds one { "supply": float, "demand": float } per separate grid, so the
+## query panel can report the local network rather than only the city-wide total.
+static func _distribute(grid: CityGrid, out_key: String, use_key: String, zone_table: Array,
+		result: PackedInt32Array, net_id: PackedInt32Array) -> Array:
 	result.fill(0)
-	var net_id := PackedInt32Array()
-	net_id.resize(grid.size)
 	net_id.fill(-1)
 
 	var total_supply := 0.0
@@ -98,4 +112,7 @@ static func _distribute(grid: CityGrid, out_key: String, use_key: String, zone_t
 		if net_id[i] < 0:
 			total_demand += _tile_use(grid, i, use_key, zone_table)
 
-	return [total_supply, total_demand]
+	var summary: Array = []
+	for net in networks:
+		summary.append({ "supply": net["supply"], "demand": net["demand"] })
+	return [total_supply, total_demand, summary]

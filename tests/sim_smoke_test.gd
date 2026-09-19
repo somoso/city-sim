@@ -135,6 +135,24 @@ func _ready() -> void:
 				powered += 1
 	check(developed > 0 and powered == developed, "all developed lots powered (%d/%d)" % [powered, developed])
 
+	# Utilities are tracked per connected network, and the query panel reads them.
+	check(GameState.power_networks.size() >= 1, "at least one power network exists (%d)" % GameState.power_networks.size())
+	var net_tile := -1
+	for i in range(grid.size):
+		if grid.is_developed(i) and grid.power_net[i] >= 0:
+			net_tile = i
+			break
+	check(net_tile >= 0, "a developed lot is attached to a power network")
+	if net_tile >= 0:
+		check(Utilities.tile_power_use(grid, net_tile) > 0.0, "a developed lot draws power (%.0f)" % Utilities.tile_power_use(grid, net_tile))
+		var stats: Dictionary = GameState.power_networks[grid.power_net[net_tile]]
+		check(stats["supply"] > 0.0, "its network reports a supply (%.0f)" % stats["supply"])
+
+	# Ten years of utilisation history feed the graphs, capped at HISTORY_MONTHS.
+	check(GameState.power_demand_history.size() > 12, "power history recorded (%d months)" % GameState.power_demand_history.size())
+	check(GameState.power_demand_history.size() <= GameState.HISTORY_MONTHS, "history is capped")
+	check(GameState.water_supply_history.size() == GameState.power_demand_history.size(), "all four series stay in step")
+
 	# With power, water and roads in place the alerts must clear for served lots.
 	var after := Alerts.compute(grid)
 	var served_flagged := 0
@@ -144,6 +162,20 @@ func _ready() -> void:
 				served_flagged += 1
 	check(served_flagged == 0, "fully served lots raise no alert (%d did)" % served_flagged)
 	check(Alerts.mask_for("power") == Alerts.NO_POWER and Alerts.mask_for("nope") == Alerts.NONE, "alert kind lookup")
+
+	# Cutting the power off must make lots decay and report themselves as abandoned.
+	for i in range(grid.size):
+		if grid.building[i] == Constants.Building.POWER_COAL or grid.building[i] == Constants.Building.POWER_WIND:
+			tools.apply_area(Constants.Tool.BULLDOZE, grid.x_of(i), grid.y_of(i), grid.x_of(i), grid.y_of(i))
+	for m in range(36):
+		GameState.tick_month()
+	var abandoned_tiles := 0
+	for i in range(grid.size):
+		if grid.abandoned[i] == 1:
+			abandoned_tiles += 1
+	check(abandoned_tiles > 0, "lots are marked abandoned after losing power (%d)" % abandoned_tiles)
+	var cut := Alerts.compute(grid)
+	check(cut["counts"]["abandoned"] == abandoned_tiles, "abandoned lots are reported as alerts (%d)" % cut["counts"]["abandoned"])
 
 	# Disasters must not crash.
 	GameState.post_message(FireSim.trigger_tornado(grid, GameState.rng))
@@ -156,12 +188,23 @@ func _ready() -> void:
 	# Save / load round trip.
 	var pop_before := GameState.population
 	var funds_saved := GameState.funds
+	var history_before := GameState.power_demand_history.size()
+	var abandoned_before := 0
+	for i in range(grid.size):
+		if grid.abandoned[i] == 1:
+			abandoned_before += 1
 	check(SaveManager.save_city("smoke_test"), "saved city")
 	GameState.new_city(32, 32, 1, "Other", false)
 	check(SaveManager.load_city("smoke_test"), "loaded city")
 	check(GameState.grid.width == 48, "loaded grid width")
 	check(GameState.funds == funds_saved, "funds restored")
 	check(GameState.population == pop_before, "population restored (%d vs %d)" % [GameState.population, pop_before])
+	check(GameState.power_demand_history.size() == history_before, "utilisation history restored (%d)" % GameState.power_demand_history.size())
+	var abandoned_after := 0
+	for i in range(GameState.grid.size):
+		if GameState.grid.abandoned[i] == 1:
+			abandoned_after += 1
+	check(abandoned_after == abandoned_before, "abandoned lots survive a save/load (%d vs %d)" % [abandoned_after, abandoned_before])
 	check("smoke_test" in SaveManager.list_saves(), "save listed")
 	SaveManager.delete_save("smoke_test")
 

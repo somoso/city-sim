@@ -554,6 +554,26 @@ def paint_water(cv, cx, cy, hot):
     cv.ellipse(cx - 5, cy + 3, 3, 5, (226, 244, 255, 235))
 
 
+def paint_abandoned(cv, cx, cy, hot):
+    """A boarded-up house: this lot had a building and lost it."""
+    wall = (206, 196, 180, 255) if hot else (176, 166, 152, 255)
+    roof = (150, 80, 62, 255) if hot else (124, 66, 50, 255)
+    board = (196, 146, 84, 255) if hot else (166, 120, 66, 255)
+    dark = (34, 30, 30, 255)
+    # Roof, then body.
+    cv.fill_poly([(cx - 16, cy - 4), (cx, cy - 18), (cx + 16, cy - 4)], roof)
+    cv.outline([(cx - 16, cy - 4), (cx, cy - 18), (cx + 16, cy - 4)], (44, 26, 20, 255))
+    cv.rect(cx - 12, cy - 4, 24, 19, wall)
+    cv.outline([(cx - 12, cy - 4), (cx + 12, cy - 4), (cx + 12, cy + 15), (cx - 12, cy + 15)], dark)
+    # An empty doorway: the building is gone.
+    cv.rect(cx - 5, cy + 3, 10, 12, dark)
+    # Two planks nailed across the front.
+    for dy in (1, 9):
+        quad = [(cx - 15, cy + dy + 2), (cx + 15, cy + dy - 3), (cx + 15, cy + dy + 2), (cx - 15, cy + dy + 7)]
+        cv.fill_poly(quad, board)
+        cv.outline(quad, (86, 58, 30, 255))
+
+
 def paint_road(cv, cx, cy, hot):
     slash = (255, 120, 108, 255) if hot else (226, 58, 52, 255)
     cv.rect(cx - 16, cy - 6, 32, 13, (104, 104, 110, 255))
@@ -1077,6 +1097,7 @@ def main():
         alert_badge("power", paint_power, hot)
         alert_badge("water", paint_water, hot)
         alert_badge("road", paint_road, hot)
+        alert_badge("abandoned", paint_abandoned, hot)
     for density in (1, 2, 3):
         for level in (1, 2, 3):
             for wealth in (1, 2, 3):

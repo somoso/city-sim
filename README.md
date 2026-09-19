@@ -39,6 +39,7 @@ godot --path /path/to/city-sim
 | Lay roads | Pick Road, then left-click-drag (an L-shaped path is previewed) |
 | Place a building | Pick it from Utilities or Civic, then left-click |
 | Inspect a tile | Query tool (or no tool) and left-click |
+| Power and water graphs | Utilities button in the top bar |
 | Cancel tool / close panel | Right-click or `Esc` |
 | Pause / speed | `Space`, `1`, `2`, `3`, or the buttons in the top bar |
 | Shortcuts | `R` road, `B` bulldoze, `Q` query |
@@ -54,8 +55,13 @@ godot --path /path/to/city-sim
 3. Zone residential, commercial and industrial land next to the roads. Watch the RCI gauge in
    the top bar: bars above the line mean demand, bars below mean oversupply.
 4. Open **Budget** to set tax rates and department funding. Nine percent is the neutral
-   tax rate; higher rates cut demand.
-5. Add parks, schools, police and fire stations as the city grows. Use the overlay dropdown
+   tax rate; higher rates cut demand. The top bar shows the treasury with last month's
+   income, expenses and net underneath it.
+5. Open **Utilities** for power and water utilisation: a headline reading and meter for
+   each, plus a chart of the last ten years. Hover a chart for the figures in any month.
+   Power and water are drawn as two charts rather than one, because they are different
+   units and a shared y-axis would misrepresent both.
+6. Add parks, schools, police and fire stations as the city grows. Use the overlay dropdown
    (top right) to see power, water, land value, pollution, crime, traffic, fire risk and
    service coverage.
 
@@ -71,6 +77,10 @@ game says so loudly instead of leaving you guessing:
 - A **Problems banner** in the top-left lists the totals. Click a line to jump the camera to
   an affected lot; click again to tour the rest.
 
+A lot that developed and then lost its building is marked **abandoned**, with its own
+boarded-up-house badge and a line in the banner, so a city going backwards is visible
+rather than just showing up as a falling population.
+
 Utility and civic buildings raise the same warnings when they lack what they need, including
 a water pump built away from water. Road access takes priority: while a lot has no road, that
 is the only warning it shows, because power and water travel along roads anyway.
@@ -85,7 +95,9 @@ Every simulated month the following systems run in order (see `scripts/sim/simul
   two tiles deep through lots of the same zone), and estimates job accessibility for
   residents. Traffic is spread along roads from nearby lots.
 - **Utilities** – power and water propagate from plants through connected built tiles. If a
-  network's demand exceeds supply, tiles furthest from the source lose service first.
+  network's demand exceeds supply, tiles furthest from the source lose service first. Each
+  separately connected grid is tracked on its own, so the Query tool can report the local
+  network rather than only the city-wide total.
 - **Services** – police, fire, school, hospital and park coverage radiate from each building,
   scaled by its department funding. Unpowered services run at reduced strength.
 - **Environment** – pollution (industry, coal, traffic, fires), crime (density, poverty,
@@ -115,6 +127,12 @@ change the look of the game:
 python3 tools/generate_sprites.py
 ```
 
+## Window size
+
+The project stretches its canvas to fill the window, so resizing scales the interface and
+shows more of the map rather than cropping it. The layout is designed against a 1280x720
+base and has been checked from 1000x760 up to 1680x820.
+
 ## Project layout
 
 ```
@@ -131,7 +149,8 @@ scripts/
   game/                  GameController (input, clock) and BuildTools (applying tools)
   render/                IsoMath, Sprites loader, chunked terrain/world/overlay layers,
                          alerts, cursor, camera
-  ui/                    HUD, RCI gauge, info panel, budget panel, in-game menu, main menu
+  ui/                    HUD, RCI gauge, info panel, budget panel, utilities panel and
+                         charts, in-game menu, main menu
 tests/                   Headless smoke tests (see below)
 ```
 

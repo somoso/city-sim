@@ -6,7 +6,7 @@ const T := Constants.Tool
 
 const CATEGORIES := [
 	["Query", [T.QUERY]],
-	["Bulldoze", [T.BULLDOZE, T.DEZONE]],
+	["Destruction", [T.BULLDOZE, T.DEZONE]],
 	["Roads", [T.ROAD]],
 	["Residential", [T.ZONE_R_LOW, T.ZONE_R_MED, T.ZONE_R_HIGH]],
 	["Commercial", [T.ZONE_C_LOW, T.ZONE_C_MED, T.ZONE_C_HIGH]],
@@ -28,6 +28,9 @@ const SHORT_NAMES := {
 
 var city_label: Label
 var funds_label: Label
+var income_label: Label
+var expenses_label: Label
+var net_label: Label
 var date_label: Label
 var pop_label: Label
 var jobs_label: Label
@@ -56,7 +59,12 @@ const ALERT_INFO := {
 	"road": ["No road access: %d lot%s", Color(1.0, 0.72, 0.66)],
 	"power": ["No electricity: %d lot%s", Color(1.0, 0.86, 0.35)],
 	"water": ["No water: %d lot%s", Color(0.55, 0.80, 1.0)],
+	"abandoned": ["Abandoned: %d lot%s", Color(0.86, 0.72, 0.52)],
 }
+
+## Reserved status colours for money moving in and out.
+const MONEY_IN := Color("#28c828")
+const MONEY_OUT := Color("#f06464")
 
 const OVERLAY_LEGENDS := {
 	Constants.Overlay.ZONES: "Green: residential. Blue: commercial. Yellow: industrial.",
@@ -75,6 +83,7 @@ const OVERLAY_LEGENDS := {
 
 var info_panel: InfoPanel
 var budget_panel: BudgetPanel
+var utility_panel: UtilityPanel
 var menu_panel: GameMenu
 
 
@@ -89,6 +98,8 @@ func _ready() -> void:
 	add_child(info_panel)
 	budget_panel = BudgetPanel.new()
 	add_child(budget_panel)
+	utility_panel = UtilityPanel.new()
+	add_child(utility_panel)
 	menu_panel = GameMenu.new()
 	add_child(menu_panel)
 
@@ -150,32 +161,46 @@ func _build_top_bar() -> void:
 	margin.add_theme_constant_override("margin_bottom", 4)
 	panel.add_child(margin)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	row.add_theme_constant_override("separation", 6)
 	margin.add_child(row)
 
 	city_label = _label("City", 16)
 	row.add_child(city_label)
 	row.add_child(_vsep())
+	# Treasury, with last month's income, expenses and net underneath it.
+	var money := VBoxContainer.new()
+	money.add_theme_constant_override("separation", 0)
+	money.tooltip_text = "City treasury, and last month's income, expenses and net change.\nClick Budget to adjust taxes and funding."
+	row.add_child(money)
 	funds_label = _label("$0", 16)
-	funds_label.tooltip_text = "City treasury. Click Budget to adjust taxes and funding."
-	row.add_child(funds_label)
+	money.add_child(funds_label)
+	var flow := HBoxContainer.new()
+	flow.add_theme_constant_override("separation", 8)
+	money.add_child(flow)
+	income_label = _label("+$0", 11)
+	income_label.add_theme_color_override("font_color", MONEY_IN)
+	flow.add_child(income_label)
+	expenses_label = _label("-$0", 11)
+	expenses_label.add_theme_color_override("font_color", MONEY_OUT)
+	flow.add_child(expenses_label)
+	net_label = _label("$0", 11)
+	flow.add_child(net_label)
 	row.add_child(_vsep())
-	date_label = _label("Jan 1, 2000", 14)
-	date_label.custom_minimum_size.x = 120
+	date_label = _label("Jan 1, 2000", 13)
+	date_label.custom_minimum_size.x = 104
 	row.add_child(date_label)
 	row.add_child(_vsep())
-	pop_label = _label("Pop 0")
+	pop_label = _label("Pop 0", 13)
 	row.add_child(pop_label)
-	jobs_label = _label("Jobs 0")
+	jobs_label = _label("Jobs 0", 13)
 	row.add_child(jobs_label)
 	row.add_child(_vsep())
-	power_label = _label("Power 0/0")
-	power_label.tooltip_text = "Power demand / supply"
+	power_label = _label("Power 0/0", 13)
+	power_label.tooltip_text = "Power demand / supply. Click Utilities for the full picture."
 	row.add_child(power_label)
-	water_label = _label("Water 0/0")
-	water_label.tooltip_text = "Water demand / supply"
+	water_label = _label("Water 0/0", 13)
+	water_label.tooltip_text = "Water demand / supply. Click Utilities for the full picture."
 	row.add_child(water_label)
-	row.add_child(_vsep())
 	var gauge := RCIGauge.new()
 	row.add_child(gauge)
 
@@ -193,7 +218,11 @@ func _build_top_bar() -> void:
 		b.pressed.connect(func() -> void: GameState.set_speed(s))
 		row.add_child(b)
 		speed_buttons.append(b)
-	row.add_child(_vsep())
+	var utilities_btn := Button.new()
+	utilities_btn.text = "Utilities"
+	utilities_btn.tooltip_text = "Power and water utilisation, with ten years of history"
+	utilities_btn.pressed.connect(func() -> void: utility_panel.toggle())
+	row.add_child(utilities_btn)
 	var budget_btn := Button.new()
 	budget_btn.text = "Budget"
 	budget_btn.pressed.connect(func() -> void: budget_panel.toggle())
@@ -398,7 +427,14 @@ func _refresh_all() -> void:
 func _refresh_stats() -> void:
 	city_label.text = GameState.city_name
 	funds_label.text = "$%s" % _fmt(GameState.funds)
-	funds_label.add_theme_color_override("font_color", Color(1, 0.4, 0.4) if GameState.funds < 0 else Color(0.85, 1.0, 0.85))
+	funds_label.add_theme_color_override("font_color", MONEY_OUT if GameState.funds < 0 else Color(0.90, 1.0, 0.90))
+	var income := int(round(float(GameState.last_income.get("total", 0.0))))
+	var expenses := int(round(GameState.last_expenses_total))
+	var net := income - expenses
+	income_label.text = "+$%s" % _fmt(income)
+	expenses_label.text = "-$%s" % _fmt(expenses)
+	net_label.text = "net %s$%s" % ["+" if net >= 0 else "-", _fmt(absi(net))]
+	net_label.add_theme_color_override("font_color", MONEY_IN if net >= 0 else MONEY_OUT)
 	pop_label.text = "Pop %s" % _fmt(GameState.population)
 	jobs_label.text = "Jobs %s" % _fmt(GameState.jobs_total)
 	power_label.text = "Power %d/%d" % [int(GameState.power_demand), int(GameState.power_supply)]
@@ -430,7 +466,7 @@ func _show_news(text: String) -> void:
 ## Closes any open panel; returns true if one was open.
 func close_panels() -> bool:
 	var closed := false
-	for p in [info_panel, budget_panel, menu_panel]:
+	for p in [info_panel, budget_panel, utility_panel, menu_panel]:
 		if p.visible:
 			p.hide_panel()
 			closed = true

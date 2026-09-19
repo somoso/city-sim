@@ -22,6 +22,15 @@ var power_supply := 0.0
 var power_demand := 0.0
 var water_supply := 0.0
 var water_demand := 0.0
+## One { "supply": float, "demand": float } per separately connected grid.
+var power_networks: Array = []
+var water_networks: Array = []
+
+## Rolling monthly history for the utilisation graphs, oldest first.
+var power_demand_history := PackedFloat32Array()
+var power_supply_history := PackedFloat32Array()
+var water_demand_history := PackedFloat32Array()
+var water_supply_history := PackedFloat32Array()
 var last_income := { "R": 0.0, "C": 0.0, "I": 0.0, "total": 0.0 }
 var last_expenses := {}
 var last_expenses_total := 0.0
@@ -35,6 +44,8 @@ var rng := RandomNumberGenerator.new()
 var news: Array[String] = []
 
 const MAX_NEWS := 40
+## Months of utilisation kept for the graphs (ten years).
+const HISTORY_MONTHS := 120
 
 
 func has_city() -> bool:
@@ -63,7 +74,9 @@ func new_city(width: int, height: int, seed_value: int, name: String, disasters:
 	current_tool = Constants.Tool.NONE
 	current_overlay = Constants.Overlay.NONE
 	news.clear()
+	_clear_history()
 	Simulation.refresh(grid, self)
+	_record_history()
 	post_message("Welcome to %s, Mayor! Lay roads and zone land to get started." % city_name)
 	Events.city_started.emit()
 
@@ -72,6 +85,7 @@ func tick_month() -> void:
 	if grid == null:
 		return
 	var reports := Simulation.run_month(grid, self, rng)
+	_record_history()
 	month += 1
 	months_elapsed += 1
 	if month >= 12:
@@ -82,6 +96,31 @@ func tick_month() -> void:
 	Events.month_ticked.emit()
 	Events.world_changed.emit()
 	Events.funds_changed.emit(funds)
+
+
+func _clear_history() -> void:
+	power_demand_history = PackedFloat32Array()
+	power_supply_history = PackedFloat32Array()
+	water_demand_history = PackedFloat32Array()
+	water_supply_history = PackedFloat32Array()
+
+
+func _record_history() -> void:
+	_push_history(power_demand_history, power_demand)
+	_push_history(power_supply_history, power_supply)
+	_push_history(water_demand_history, water_demand)
+	_push_history(water_supply_history, water_supply)
+
+
+func _push_history(buffer: PackedFloat32Array, value: float) -> void:
+	buffer.append(value)
+	while buffer.size() > HISTORY_MONTHS:
+		buffer.remove_at(0)
+
+
+## Monthly net change in the treasury from the last budget run.
+func net_income() -> float:
+	return float(last_income.get("total", 0.0)) - last_expenses_total
 
 
 func date_string() -> String:
@@ -145,6 +184,12 @@ func to_dict() -> Dictionary:
 		"disasters_enabled": disasters_enabled,
 		"rng_state": rng.state,
 		"news": news,
+		"history": {
+			"power_demand": Array(power_demand_history),
+			"power_supply": Array(power_supply_history),
+			"water_demand": Array(water_demand_history),
+			"water_supply": Array(water_supply_history),
+		},
 		"grid": g,
 	}
 
@@ -189,6 +234,14 @@ func from_dict(d: Dictionary) -> bool:
 	news.clear()
 	for n in d.get("news", []):
 		news.append(str(n))
+	_clear_history()
+	var hist: Dictionary = d.get("history", {})
+	for entry in [["power_demand", power_demand_history], ["power_supply", power_supply_history],
+			["water_demand", water_demand_history], ["water_supply", water_supply_history]]:
+		var buffer: PackedFloat32Array = entry[1]
+		for v in hist.get(entry[0], []):
+			buffer.append(float(v))
+		set(entry[0] + "_history", buffer)
 	speed = 1
 	current_tool = Constants.Tool.NONE
 	current_overlay = Constants.Overlay.NONE

@@ -9,13 +9,14 @@ var selected := -1
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	# Anchored below the problems banner, which sits under the top bar.
+	set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	offset_left = 10
-	offset_right = 270
-	offset_top = -180
-	offset_bottom = -180
+	offset_right = 344
+	offset_top = 200
+	offset_bottom = 200
 	grow_vertical = Control.GROW_DIRECTION_END
-	custom_minimum_size = Vector2(260, 0)
+	custom_minimum_size = Vector2(334, 0)
 	visible = false
 	var margin := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
@@ -34,6 +35,7 @@ func _ready() -> void:
 	close.pressed.connect(hide_panel)
 	head.add_child(close)
 	body = Label.new()
+	body.add_theme_font_size_override("font_size", 13)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(body)
 	Events.tile_selected.connect(show_tile)
@@ -55,6 +57,53 @@ func show_tile(i: int) -> void:
 	selected = i
 	visible = true
 	_refresh()
+
+
+## Power and water for the selected tile: what it draws or produces, whether it is being
+## served, and how loaded the network it sits on actually is. Utilities are per-network,
+## so the city-wide totals in the top bar can look fine while one grid is starved.
+func _utility_lines(grid: CityGrid, i: int) -> Array[String]:
+	var lines: Array[String] = []
+	if not grid.conducts(i):
+		return lines
+	# Only the origin tile of a multi-tile building reports its output, so a 3x3 plant
+	# does not claim to produce its full output nine times over.
+	var origin_tile := grid.owner[i] == i or not grid.has_civic(i)
+	lines.append("")
+	lines.append("Utilities")
+	for entry in [
+			["Power", "MW", grid.powered, grid.power_net, GameState.power_networks,
+				Utilities.tile_power_use(grid, i),
+				float(BuildingDefs.def_value(grid.building[i], "power_out", 0)) if origin_tile else 0.0],
+			["Water", "units", grid.watered, grid.water_net, GameState.water_networks,
+				Utilities.tile_water_use(grid, i),
+				float(BuildingDefs.def_value(grid.building[i], "water_out", 0)) if origin_tile else 0.0]]:
+		var name: String = entry[0]
+		var unit: String = entry[1]
+		var served: PackedInt32Array = entry[2]
+		var nets: PackedInt32Array = entry[3]
+		var stats: Array = entry[4]
+		var use: float = entry[5]
+		var out: float = entry[6]
+		var bits: Array[String] = []
+		if out > 0.0:
+			bits.append("produces %d %s" % [int(out), unit])
+		if use > 0.0:
+			bits.append("uses %d %s" % [int(use), unit])
+		if bits.is_empty():
+			bits.append("no draw")
+		bits.append("supplied" if served[i] == 1 else "NOT SUPPLIED")
+		lines.append("  %s: %s" % [name, ", ".join(bits)])
+		var net_id := nets[i] if i < nets.size() else -1
+		if net_id >= 0 and net_id < stats.size():
+			var supply: float = stats[net_id]["supply"]
+			var demand: float = stats[net_id]["demand"]
+			var pct := 0 if supply <= 0.0 else int(round(demand / supply * 100.0))
+			lines.append("    net %d/%d: %d/%d %s (%d%%)" % [
+				net_id + 1, stats.size(), int(round(demand)), int(round(supply)), unit, pct])
+		else:
+			lines.append("    not connected to a %s source" % name.to_lower())
+	return lines
 
 
 func _refresh() -> void:
@@ -106,23 +155,17 @@ func _refresh() -> void:
 				lines.append("Residents: %d" % grid.population[i])
 			if grid.jobs[i] > 0:
 				lines.append("Jobs: %d" % grid.jobs[i])
+		elif grid.abandoned[i] == 1:
+			lines.append("ABANDONED - this lot lost its building.")
 		else:
 			lines.append("Undeveloped lot")
-		var needs: Array[String] = []
-		if grid.road_access[i] == 0:
-			needs.append("road access")
-		if grid.powered[i] == 0:
-			needs.append("power")
-		if grid.watered[i] == 0:
-			needs.append("water")
-		if needs.is_empty():
-			lines.append("Services: road, power, water OK")
-		else:
-			lines.append("Missing: %s" % ", ".join(needs))
+		lines.append("Road access: %s" % ("yes" if grid.road_access[i] == 1 else "NO"))
 		if z == Constants.Zone.RES:
 			lines.append("Job access: %d%%" % int(grid.commute[i] * 100))
 	if grid.burning[i] > 0:
 		lines.append("ON FIRE!")
+
+	lines.append_array(_utility_lines(grid, i))
 
 	lines.append("")
 	lines.append("Land value %d   Pollution %d" % [int(grid.land_value[i]), int(grid.pollution[i])])

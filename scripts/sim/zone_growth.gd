@@ -48,6 +48,7 @@ static func run(grid: CityGrid, state, rng: RandomNumberGenerator) -> Dictionary
 			if rng.randf() < p:
 				grid.set_level(i, next_level)
 				grid.wealth[i] = _wealth_for(lv)
+				grid.abandoned[i] = 0
 				stats["grown"] += 1
 		elif grid.level[i] > 0:
 			var p_decay := 0.0
@@ -61,6 +62,10 @@ static func run(grid: CityGrid, state, rng: RandomNumberGenerator) -> Dictionary
 				grid.set_level(i, grid.level[i] - 1)
 				if grid.level[i] > 0:
 					grid.wealth[i] = maxi(1, grid.wealth[i] - 1)
+				else:
+					# The lot emptied out. Flag it so the player can see where the city
+					# is losing buildings rather than just watching the population drop.
+					grid.abandoned[i] = 1
 				stats["abandoned"] += 1
 		# Wealth drifts toward what the land value supports.
 		if grid.level[i] > 0 and grid.age[i] % 6 == 0:

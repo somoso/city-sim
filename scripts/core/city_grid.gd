@@ -24,10 +24,13 @@ var population := PackedInt32Array()
 var jobs := PackedInt32Array()
 var burning := PackedInt32Array()      # 0 = not burning, otherwise months on fire
 var age := PackedInt32Array()          # months since last development change
+var abandoned := PackedInt32Array()    # 1 when a developed lot decayed back to an empty lot
 
 # --- Service state (recomputed every tick) ----------------------------------------
 var powered := PackedInt32Array()
 var watered := PackedInt32Array()
+var power_net := PackedInt32Array()    # index into GameState.power_networks, -1 if unconnected
+var water_net := PackedInt32Array()    # index into GameState.water_networks, -1 if unconnected
 var road_access := PackedInt32Array()
 var road_comp := PackedInt32Array()    # road network component id, -1 if none
 var commute := PackedFloat32Array()    # 0..1 job accessibility for residential tiles
@@ -61,13 +64,16 @@ func _init(w: int = 64, h: int = 64) -> void:
 		set(arr_name, arr)
 	owner.fill(-1)
 	road_comp.fill(-1)
+	power_net.fill(-1)
+	water_net.fill(-1)
 	terrain.fill(Constants.Terrain.GRASS)
 
 
 static func int_layer_names() -> Array[String]:
 	return [
 		"terrain", "zone_type", "zone_density", "building", "owner", "level", "wealth",
-		"population", "jobs", "burning", "age", "powered", "watered", "road_access", "road_comp",
+		"population", "jobs", "burning", "age", "abandoned", "powered", "watered",
+		"road_access", "road_comp", "power_net", "water_net",
 	]
 
 
@@ -81,7 +87,7 @@ static func float_layer_names() -> Array[String]:
 ## Layers that must be persisted; the rest are derived every tick.
 static func persisted_int_layers() -> Array[String]:
 	return ["terrain", "zone_type", "zone_density", "building", "owner", "level", "wealth",
-		"population", "jobs", "burning", "age"]
+		"population", "jobs", "burning", "age", "abandoned"]
 
 
 static func persisted_float_layers() -> Array[String]:
@@ -177,6 +183,7 @@ func clear_tile(i: int) -> void:
 	jobs[i] = 0
 	burning[i] = 0
 	age[i] = 0
+	abandoned[i] = 0
 
 
 ## Removes any development on a zoned lot but keeps the zone designation.
@@ -218,6 +225,7 @@ func place_building(x: int, y: int, type: int, fsize: int) -> void:
 			population[i] = 0
 			jobs[i] = 0
 			burning[i] = 0
+			abandoned[i] = 0
 			building[i] = type
 			owner[i] = origin
 			if terrain[i] == Constants.Terrain.FOREST:

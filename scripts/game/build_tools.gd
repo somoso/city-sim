@@ -240,6 +240,7 @@ func _apply_single(tool: int, i: int) -> void:
 		grid.zone_density[i] = zd[1]
 		grid.level[i] = 0
 		grid.age[i] = 0
+		grid.abandoned[i] = 0
 		if grid.terrain[i] == Constants.Terrain.FOREST:
 			grid.terrain[i] = Constants.Terrain.GRASS
 		return
@@ -254,6 +255,7 @@ func _apply_single(tool: int, i: int) -> void:
 		T.DEZONE:
 			grid.zone_type[i] = Z.NONE
 			grid.zone_density[i] = 0
+			grid.abandoned[i] = 0
 		T.BULLDOZE:
 			_bulldoze(i)
 
@@ -261,6 +263,7 @@ func _apply_single(tool: int, i: int) -> void:
 func _bulldoze(i: int) -> void:
 	var grid := _grid()
 	grid.burning[i] = 0
+	grid.abandoned[i] = 0
 	if grid.has_civic(i):
 		grid.remove_building_at(i)
 		return

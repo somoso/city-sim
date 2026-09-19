@@ -8,8 +8,9 @@ const NONE := 0
 const NO_ROAD := 1
 const NO_POWER := 2
 const NO_WATER := 4
+const ABANDONED := 8
 
-const KINDS := ["road", "power", "water"]
+const KINDS := ["road", "power", "water", "abandoned"]
 
 
 static func mask_for(kind: String) -> int:
@@ -17,6 +18,7 @@ static func mask_for(kind: String) -> int:
 		"road": return NO_ROAD
 		"power": return NO_POWER
 		"water": return NO_WATER
+		"abandoned": return ABANDONED
 	return NONE
 
 
@@ -28,7 +30,7 @@ static func mask_for(kind: String) -> int:
 ## likely to misread as "nothing is happening here".
 static func compute(grid: CityGrid) -> Dictionary:
 	var flags := PackedByteArray()
-	var counts := { "road": 0, "power": 0, "water": 0 }
+	var counts := { "road": 0, "power": 0, "water": 0, "abandoned": 0 }
 	if grid == null:
 		return { "flags": flags, "counts": counts }
 	flags.resize(grid.size)
@@ -44,6 +46,8 @@ static func compute(grid: CityGrid) -> Dictionary:
 					f |= NO_POWER
 				if grid.watered[i] == 0:
 					f |= NO_WATER
+			if grid.abandoned[i] == 1:
+				f |= ABANDONED
 		elif grid.has_civic(i) and grid.owner[i] == i:
 			var type := grid.building[i]
 			if int(BuildingDefs.def_value(type, "power_use", 0)) > 0 and grid.powered[i] == 0:
@@ -61,6 +65,8 @@ static func compute(grid: CityGrid) -> Dictionary:
 			counts["power"] += 1
 		if f & NO_WATER:
 			counts["water"] += 1
+		if f & ABANDONED:
+			counts["abandoned"] += 1
 	return { "flags": flags, "counts": counts }
 
 

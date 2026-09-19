@@ -135,4 +135,20 @@ func _process(_delta: float) -> void:
 				GameState.tick_month()
 		32:
 			_save_shot("06_disaster")
+			GameState.set_overlay(Constants.Overlay.NONE)
+			game.hud.utility_panel.toggle()
+		36:
+			_save_shot("07_utilities")
+			game.hud.utility_panel.power_chart._hover_index = maxi(GameState.power_demand_history.size() - 18, 0)
+			game.hud.utility_panel.power_chart.queue_redraw()
+		38:
+			_save_shot("08_utilities_hover")
+			game.hud.utility_panel.hide_panel()
+			# Check the interface still fits when the window is resized.
+			get_window().size = Vector2i(1000, 760)
+		42:
+			_save_shot("09_resized_small")
+			get_window().size = Vector2i(1680, 820)
+		46:
+			_save_shot("10_resized_wide")
 			get_tree().quit(0)

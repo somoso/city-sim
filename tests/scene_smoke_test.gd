@@ -67,6 +67,12 @@ func _process(_delta: float) -> void:
 			game.cursor_layer.begin_drag(Vector2i(5, 5))
 			game.cursor_layer.set_hover(Vector2i(9, 9))
 		8:
+			# The destructive tool group is labelled so it cannot be mistaken for the
+			# bulldoze tool itself.
+			var names: Array[String] = []
+			for entry in game.hud.CATEGORIES:
+				names.append(entry[0])
+			check("Destruction" in names and not ("Bulldoze" in names), "tool group renamed to Destruction")
 			for m in range(24):
 				GameState.tick_month()
 			check(GameState.population > 0, "population after 2 years: %d (power %d/%d, water %d/%d)" % [
@@ -87,7 +93,24 @@ func _process(_delta: float) -> void:
 				GameState.tick_month()
 			GameState.set_tool(Constants.Tool.QUERY)
 			Events.tile_selected.emit(0)
+		26:
+			# Utilities panel: stats, meters and both charts.
+			game.hud.utility_panel.toggle()
+			check(game.hud.utility_panel.visible, "utilities panel opens")
+			check(game.hud.utility_panel.power_chart.demand.size() > 1, "power chart has history (%d points)" % game.hud.utility_panel.power_chart.demand.size())
+			check(game.hud.utility_panel.water_chart.capacity.size() > 1, "water chart has capacity series")
+			check(game.hud.utility_panel.power_stat.text.contains("used"), "power stat reads: %s" % game.hud.utility_panel.power_stat.text)
+			game.hud.utility_panel.power_chart._hover_index = 3
+			game.hud.utility_panel.power_chart.queue_redraw()
+			game.hud.utility_panel.water_chart.queue_redraw()
+			game.hud.utility_panel.power_meter.queue_redraw()
+			check(game.hud.income_label.text.begins_with("+$") and game.hud.expenses_label.text.begins_with("-$"),
+				"treasury shows income and expenses (%s, %s)" % [game.hud.income_label.text, game.hud.expenses_label.text])
+			check(game.hud.net_label.text.begins_with("net"), "treasury shows net (%s)" % game.hud.net_label.text)
 		28:
+			# Close only the utilities panel; the info panel is checked below.
+			game.hud.utility_panel.toggle()
+			check(not game.hud.utility_panel.visible, "utilities panel closes")
 			check(game.alerts_layer.draw_count >= 3, "alerts layer animated (%d draws)" % game.alerts_layer.draw_count)
 			check(game.terrain_layer.draw_count >= 16, "terrain chunks drew (%d)" % game.terrain_layer.draw_count)
 			check(game.world_layer.draw_count >= 16, "world chunks drew (%d)" % game.world_layer.draw_count)

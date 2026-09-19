@@ -20,7 +20,7 @@ const CULL_PAD := 400.0
 var grid: CityGrid = null
 ## Per-tile bitmask of Alerts.NO_* flags. Kept for the HUD's jump-to-problem buttons.
 var flags := PackedByteArray()
-var counts := { "road": 0, "power": 0, "water": 0 }
+var counts := { "road": 0, "power": 0, "water": 0, "abandoned": 0 }
 ## One entry per contiguous group of tiles sharing a problem:
 ## { "tile": int, "flags": int, "count": int }.
 var clusters: Array = []
@@ -43,7 +43,10 @@ func rebuild() -> void:
 	var result := Alerts.compute(grid)
 	flags = result["flags"]
 	counts = result["counts"]
-	_has_alerts = counts["road"] + counts["power"] + counts["water"] > 0
+	var total := 0
+	for kind in Alerts.KINDS:
+		total += int(counts[kind])
+	_has_alerts = total > 0
 	clusters = _build_clusters()
 	Events.alerts_changed.emit(counts)
 	queue_redraw()
@@ -212,6 +215,8 @@ func _draw_badges(cluster: Dictionary, pulse: float, badge_scale: float, view: R
 		kinds.append("power")
 	if f & Alerts.NO_WATER:
 		kinds.append("water")
+	if f & Alerts.ABANDONED:
+		kinds.append("abandoned")
 	if kinds.is_empty():
 		return
 
