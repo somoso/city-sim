@@ -755,28 +755,48 @@ def ind_sprite(density, level, wealth):
     base_wall = IND_WALLS[density]
     wall = col(base_wall[0] * tint[0], base_wall[1] * tint[1], base_wall[2] * tint[2])
     if density == 1:
-        h = [0, 22, 28, 34][level]
-        cv = Canvas(TW, TH + h + 46)
+        # Low-density industry is farmland: a worked field with a barn on it.
+        h = [0, 16, 20, 24][level]
+        cv = Canvas(TW, TH + h + 52)
         iso = Iso(cv, 1)
-        lot(cv, iso, grass=(150, 140, 120, 255), pave_inset=0.0, pave=(150, 140, 120, 255))
-        base = iso.diamond(0.12)
-        top = draw_box(cv, base, h, wall, top_color=shade(wall, 0.8))
-        T, R, B, L = base
-        # Sawtooth roof: stripes across the top face.
-        Tt, Rt, Bt, Lt = top
-        for k in range(3):
-            t0 = k / 3.0
-            t1 = t0 + 0.5 / 3.0
-            a = (Tt[0] + (Lt[0] - Tt[0]) * t0, Tt[1] + (Lt[1] - Tt[1]) * t0)
-            b = (Tt[0] + (Lt[0] - Tt[0]) * t1, Tt[1] + (Lt[1] - Tt[1]) * t1)
-            c = (Rt[0] + (Bt[0] - Rt[0]) * t1, Rt[1] + (Bt[1] - Rt[1]) * t1)
-            d = (Rt[0] + (Bt[0] - Rt[0]) * t0, Rt[1] + (Bt[1] - Rt[1]) * t0)
-            cv.fill_poly([a, d, c, b], shade(wall, 0.6))
-        face_windows(cv, L, B, h, rng, win_w=10, win_h=5, pitch_x=16, pitch_y=8, margin_y=h - 12, margin_x=8,
-                     lit=(200, 210, 190, 255), dark=(120, 130, 120, 255), lit_prob=0.5)
-        # Loading door.
-        cv.fill_poly([(B[0] + 8, B[1] - 4), (B[0] + 24, B[1] - 12), (B[0] + 24, B[1] - 26), (B[0] + 8, B[1] - 18)], (80, 80, 85, 255))
-        chimney(cv, Lt[0] + 16, Lt[1] + 6, 6, 24 + level * 4, (120, 110, 105, 255), smoke=level >= 2)
+        soil = (126, 96, 66, 255)
+        d = iso.diamond()
+        cv.fill_poly(d, soil)
+        crop = [(0, 0, 0), (118, 152, 74, 255), (140, 172, 78, 255), (206, 184, 92, 255)][level]
+        # Furrows running along one axis of the tile.
+        rows = 7
+        for k in range(rows):
+            t0 = (k + 0.25) / rows
+            t1 = (k + 0.75) / rows
+            quad = [iso.p(0.06, t0), iso.p(0.94, t0), iso.p(0.94, t1), iso.p(0.06, t1)]
+            cv.fill_poly(quad, crop)
+            cv.outline(quad, shade(crop, 0.78))
+        cv.outline(d, shade(soil, 0.7))
+        # A track along the near edge of the field.
+        cv.fill_poly([iso.p(0.0, 0.94), iso.p(1.0, 0.94), iso.p(1.0, 1.0), iso.p(0.0, 1.0)], (158, 142, 116, 255))
+        # Barn in the far corner.
+        barn = iso.sub_diamond(0.08, 0.06, 0.46, 0.44)
+        barn_wall = (168, 62, 52, 255) if wealth < 3 else (186, 78, 62, 255)
+        barn_top = draw_box(cv, barn, h + 10, barn_wall)
+        hip_roof(cv, barn_top, 9, (126, 78, 60, 255))
+        Tb, Rb, Bb, Lb = barn
+        cv.fill_poly([(Bb[0] - 5, Bb[1] - 2), (Bb[0] + 5, Bb[1] - 2),
+                      (Bb[0] + 5, Bb[1] - 16), (Bb[0] - 5, Bb[1] - 16)], (58, 42, 36, 255))
+        if level >= 2:
+            # Silo beside the barn.
+            sx, sy = iso.p(0.60, 0.20)
+            silo = (198, 196, 186, 255)
+            cv.rect(sx - 8, sy - 34, 16, 34, silo)
+            cv.rect(sx - 8, sy - 34, 5, 34, shade(silo, 1.1))
+            cv.ellipse(sx, sy, 8, 4, shade(silo, 0.8))
+            for z in range(0, 8):
+                r = math.sqrt(64 - z * z) / 8.0
+                cv.ellipse(sx, sy - 34 - z * 0.8, 8 * r, 4 * r, shade((150, 142, 132, 255), 1.0 + z * 0.02))
+        if level >= 3:
+            # A second, longer barn for the biggest farms.
+            shed = iso.sub_diamond(0.52, 0.58, 0.96, 0.86)
+            shed_top = draw_box(cv, shed, 14, (150, 140, 124, 255))
+            hip_roof(cv, shed_top, 6, (92, 84, 74, 255))
     elif density == 2:
         h = [0, 40, 55, 70][level]
         cv = Canvas(TW, TH + h + 70)

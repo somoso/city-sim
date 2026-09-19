@@ -47,25 +47,28 @@ static func _compute_access_and_commute(grid: CityGrid) -> void:
 			continue
 		for n in grid.neighbors4(i):
 			if grid.is_road(n):
-				grid.road_access[i] = 1
 				depth[i] = 1
 				tile_comp[i] = grid.road_comp[n]
 				break
 
-	# Deeper lots reach the road through a connected lot of the same zone type.
-	for d in range(2, Constants.ACCESS_DEPTH + 1):
+	# Deeper lots reach the road through a connected lot of the same zone type. The search
+	# runs to the deepest any zone allows; each lot is then judged against its own limit,
+	# which is larger for farmland than for a city block.
+	for d in range(2, Constants.MAX_ACCESS_DEPTH + 1):
 		for i in range(grid.size):
-			if grid.zone_type[i] == Constants.Zone.NONE or grid.road_access[i] == 1:
+			if grid.zone_type[i] == Constants.Zone.NONE or depth[i] != 0:
 				continue
 			for n in grid.neighbors4(i):
 				if depth[n] == d - 1 and grid.zone_type[n] == grid.zone_type[i]:
-					grid.road_access[i] = 1
 					depth[i] = d
 					tile_comp[i] = tile_comp[n]
 					break
 
 	for i in range(grid.size):
-		if grid.road_access[i] == 1:
+		if depth[i] == 0:
+			continue
+		if depth[i] <= Constants.access_depth(grid.zone_type[i], grid.zone_density[i]):
+			grid.road_access[i] = 1
 			var c := tile_comp[i]
 			comp_pop[c] = comp_pop.get(c, 0) + grid.population[i]
 			comp_jobs[c] = comp_jobs.get(c, 0) + grid.jobs[i]

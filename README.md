@@ -40,14 +40,15 @@ godot --path /path/to/city-sim
 | Place a building | Pick it from Utilities or Civic, then left-click |
 | Inspect a tile | Query tool (or no tool) and left-click |
 | Power and water graphs | Utilities button in the top bar |
+| Residents vs employed | Graph in the top bar |
 | Cancel tool / close panel | Right-click or `Esc` |
 | Pause / speed | `Space`, `1`, `2`, `3`, or the buttons in the top bar |
 | Shortcuts | `R` road, `B` bulldoze, `Q` query |
 
 ### Getting a city started
 
-1. Lay a few roads. Lots must be within two tiles of a road; the zone tool refuses anything
-   further away and shows those tiles in orange while you drag.
+1. Lay a few roads, or just start zoning: the zone tool lays whatever service roads a
+   district needs and shows them in the drag preview before you commit.
 2. Build a power source (a wind turbine is cheap) and a water tower or a water pump next to
    water. Power and water travel under roads and through any built tile, so keep things
    connected. The Power and Water overlays draw the wires and pipes so you can see exactly
@@ -85,15 +86,34 @@ Utility and civic buildings raise the same warnings when they lack what they nee
 a water pump built away from water. Road access takes priority: while a lot has no road, that
 is the only warning it shows, because power and water travel along roads anyway.
 
+## Zoning and block sizes
+
+Dragging a zone does not fail when the lots are out of reach of a road. The game works out
+the service roads the district needs, shows them in the preview with the cost, and lays them
+when you release. New roads are linked back to the existing network so the district is not
+an island.
+
+Each zone has a maximum block size, and roads are inserted to respect it:
+
+| Zone | Largest block | Reaches from a road |
+| --- | --- | --- |
+| Residential | 4 tiles deep | 2 tiles |
+| Commercial | 2 x 5 tiles | 2 tiles |
+| Agricultural (low-density industrial) | 8 tiles deep | 4 tiles |
+| Medium and high industrial | 4 tiles deep | 2 tiles |
+
+Low-density industrial is farmland: it grows fields with a barn and silo rather than sheds,
+and it needs room, so it sits further from a road than a city block does.
+
 ## Simulation overview
 
 Every simulated month the following systems run in order (see `scripts/sim/simulation.gd`):
 
 - **Alerts** – `scripts/sim/alerts.gd` turns the service maps into per-tile warning flags
   and totals, which drive both the in-world badges and the HUD banner.
-- **Road network** – flood-fills road components, marks which lots have road access (up to
-  two tiles deep through lots of the same zone), and estimates job accessibility for
-  residents. Traffic is spread along roads from nearby lots.
+- **Road network** – flood-fills road components, marks which lots have road access (each
+  zone has its own reach, so farmland counts at four tiles where a city block counts at
+  two), and estimates job accessibility for residents. Traffic spreads along roads.
 - **Utilities** – power and water propagate from plants through connected built tiles. If a
   network's demand exceeds supply, tiles furthest from the source lose service first. Each
   separately connected grid is tracked on its own, so the Query tool can report the local
@@ -149,8 +169,8 @@ scripts/
   game/                  GameController (input, clock) and BuildTools (applying tools)
   render/                IsoMath, Sprites loader, chunked terrain/world/overlay layers,
                          alerts, cursor, camera
-  ui/                    HUD, RCI gauge, info panel, budget panel, utilities panel and
-                         charts, in-game menu, main menu
+  ui/                    HUD, RCI gauge, population graph, info panel, budget panel,
+                         utilities panel and charts, in-game menu, main menu
 tests/                   Headless smoke tests (see below)
 ```
 

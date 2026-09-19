@@ -148,7 +148,10 @@ func _refresh() -> void:
 
 	var z := grid.zone_type[i]
 	if z != Constants.Zone.NONE:
-		lines.append("%s zone, %s density" % [Constants.ZONE_NAMES[z], Constants.DENSITY_NAMES[grid.zone_density[i]].to_lower()])
+		if z == Constants.Zone.IND and grid.zone_density[i] == 1:
+			lines.append("Agricultural zone")
+		else:
+			lines.append("%s zone, %s density" % [Constants.ZONE_NAMES[z], Constants.DENSITY_NAMES[grid.zone_density[i]].to_lower()])
 		if grid.level[i] > 0:
 			lines.append("Developed level %d, %s" % [grid.level[i], Constants.WEALTH_NAMES[grid.wealth[i]].to_lower()])
 			if grid.population[i] > 0:

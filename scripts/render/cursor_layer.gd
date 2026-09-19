@@ -11,7 +11,9 @@ var draw_count := 0
 
 const OK_FILL := Color(0.3, 1.0, 0.4, 0.35)
 const BAD_FILL := Color(1.0, 0.3, 0.3, 0.40)
-const FAR_FILL := Color(1.0, 0.65, 0.15, 0.45)
+## Tiles the game will turn into service road as part of a zone drag.
+const ROAD_FILL := Color(0.22, 0.22, 0.26, 0.85)
+const ROAD_EDGE := Color(0.90, 0.82, 0.40, 0.9)
 const HOVER := Color(1, 1, 1, 0.9)
 const FONT_SIZE := 18
 
@@ -61,27 +63,29 @@ func _draw() -> void:
 		var x1 := maxi(drag_start.x, hover.x)
 		var y0 := mini(drag_start.y, hover.y)
 		var y1 := maxi(drag_start.y, hover.y)
-		var reach := {}
+		# Zone drags also show the service roads that will be laid to reach the lots.
+		var planned_roads := {}
+		var planned_lots := {}
 		if BuildingDefs.tool_is_zone(tool):
-			reach = tools.zone_reachability(tool, x0, y0, x1, y1)
-		var far := 0
+			var plan := tools.plan_zone_roads(tool, x0, y0, x1, y1)
+			for i in plan["roads"]:
+				planned_roads[i] = true
+			for i in plan["lots"]:
+				planned_lots[i] = true
 		for y in range(y0, y1 + 1):
 			for x in range(x0, x1 + 1):
 				var i := grid.idx(x, y)
-				var fill := BAD_FILL
-				if reach.has(i):
-					if reach[i]:
-						fill = OK_FILL
-					else:
-						fill = FAR_FILL
-						far += 1
-				elif tools.can_apply_at(tool, x, y):
-					fill = OK_FILL
-				draw_colored_polygon(IsoMath.diamond(x, y), fill)
+				var d := IsoMath.diamond(x, y)
+				if planned_roads.has(i):
+					draw_colored_polygon(d, ROAD_FILL)
+					draw_polyline(PackedVector2Array([d[0], d[1], d[2], d[3], d[0]]), ROAD_EDGE, outline_w)
+					continue
+				var ok := planned_lots.has(i) if BuildingDefs.tool_is_zone(tool) else tools.can_apply_at(tool, x, y)
+				draw_colored_polygon(d, OK_FILL if ok else BAD_FILL)
 		var cost := tools.area_cost(tool, x0, y0, x1, y1)
 		var text := "$%d  (%dx%d)" % [cost, x1 - x0 + 1, y1 - y0 + 1]
-		if far > 0:
-			text += "\n%d lot%s too far from a road" % [far, "" if far == 1 else "s"]
+		if not planned_roads.is_empty():
+			text += "\n%d lots + %d road tiles" % [planned_lots.size(), planned_roads.size()]
 		_draw_label(font, IsoMath.tile_center(hover.x, hover.y) + Vector2(0, -40), text)
 	elif dragging and BuildingDefs.tool_is_line(tool):
 		for p in tools.line_tiles(drag_start.x, drag_start.y, hover.x, hover.y):

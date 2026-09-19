@@ -125,7 +125,7 @@ const TOOL_NAMES := {
 	T.ZONE_C_LOW: "Low-density Commercial",
 	T.ZONE_C_MED: "Medium-density Commercial",
 	T.ZONE_C_HIGH: "High-density Commercial",
-	T.ZONE_I_LOW: "Low-density Industrial",
+	T.ZONE_I_LOW: "Agricultural",
 	T.ZONE_I_MED: "Medium-density Industrial",
 	T.ZONE_I_HIGH: "High-density Industrial",
 	T.DEZONE: "De-zone",

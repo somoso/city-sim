@@ -107,6 +107,13 @@ func _process(_delta: float) -> void:
 			check(game.hud.income_label.text.begins_with("+$") and game.hud.expenses_label.text.begins_with("-$"),
 				"treasury shows income and expenses (%s, %s)" % [game.hud.income_label.text, game.hud.expenses_label.text])
 			check(game.hud.net_label.text.begins_with("net"), "treasury shows net (%s)" % game.hud.net_label.text)
+			check(game.hud.population_chart != null, "top bar carries the population graph")
+			game.hud.population_chart.queue_redraw()
+			var labels: Array[String] = []
+			for child in game.hud.get_children():
+				if child is PanelContainer:
+					continue
+			check(not ("power_label" in game.hud), "power/water readouts were removed from the top bar")
 		28:
 			# Close only the utilities panel; the info panel is checked below.
 			game.hud.utility_panel.toggle()

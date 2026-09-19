@@ -23,6 +23,8 @@ static func run(grid: CityGrid, state) -> void:
 	state.com_jobs = com_jobs
 	state.ind_jobs = ind_jobs
 	state.jobs_total = com_jobs + ind_jobs
+	# Half the population is of working age; they fill whatever jobs exist.
+	state.employed = mini(pop / 2, state.jobs_total)
 
 	var workers := float(pop) * 0.5
 	var jobs := float(com_jobs + ind_jobs)

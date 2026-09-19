@@ -18,6 +18,8 @@ var population := 0
 var com_jobs := 0
 var ind_jobs := 0
 var jobs_total := 0
+## Residents who actually hold one of those jobs.
+var employed := 0
 var power_supply := 0.0
 var power_demand := 0.0
 var water_supply := 0.0
@@ -31,6 +33,8 @@ var power_demand_history := PackedFloat32Array()
 var power_supply_history := PackedFloat32Array()
 var water_demand_history := PackedFloat32Array()
 var water_supply_history := PackedFloat32Array()
+var population_history := PackedFloat32Array()
+var employed_history := PackedFloat32Array()
 var last_income := { "R": 0.0, "C": 0.0, "I": 0.0, "total": 0.0 }
 var last_expenses := {}
 var last_expenses_total := 0.0
@@ -70,6 +74,7 @@ func new_city(width: int, height: int, seed_value: int, name: String, disasters:
 	com_jobs = 0
 	ind_jobs = 0
 	jobs_total = 0
+	employed = 0
 	speed = 1
 	current_tool = Constants.Tool.NONE
 	current_overlay = Constants.Overlay.NONE
@@ -103,6 +108,8 @@ func _clear_history() -> void:
 	power_supply_history = PackedFloat32Array()
 	water_demand_history = PackedFloat32Array()
 	water_supply_history = PackedFloat32Array()
+	population_history = PackedFloat32Array()
+	employed_history = PackedFloat32Array()
 
 
 func _record_history() -> void:
@@ -110,6 +117,8 @@ func _record_history() -> void:
 	_push_history(power_supply_history, power_supply)
 	_push_history(water_demand_history, water_demand)
 	_push_history(water_supply_history, water_supply)
+	_push_history(population_history, float(population))
+	_push_history(employed_history, float(employed))
 
 
 func _push_history(buffer: PackedFloat32Array, value: float) -> void:
@@ -189,6 +198,8 @@ func to_dict() -> Dictionary:
 			"power_supply": Array(power_supply_history),
 			"water_demand": Array(water_demand_history),
 			"water_supply": Array(water_supply_history),
+			"population": Array(population_history),
+			"employed": Array(employed_history),
 		},
 		"grid": g,
 	}
@@ -237,7 +248,8 @@ func from_dict(d: Dictionary) -> bool:
 	_clear_history()
 	var hist: Dictionary = d.get("history", {})
 	for entry in [["power_demand", power_demand_history], ["power_supply", power_supply_history],
-			["water_demand", water_demand_history], ["water_supply", water_supply_history]]:
+			["water_demand", water_demand_history], ["water_supply", water_supply_history],
+			["population", population_history], ["employed", employed_history]]:
 		var buffer: PackedFloat32Array = entry[1]
 		for v in hist.get(entry[0], []):
 			buffer.append(float(v))

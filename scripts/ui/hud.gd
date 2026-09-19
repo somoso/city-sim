@@ -19,7 +19,7 @@ const SHORT_NAMES := {
 	T.QUERY: "Query", T.BULLDOZE: "Bulldoze", T.DEZONE: "De-zone", T.ROAD: "Road",
 	T.ZONE_R_LOW: "Low", T.ZONE_R_MED: "Medium", T.ZONE_R_HIGH: "High",
 	T.ZONE_C_LOW: "Low", T.ZONE_C_MED: "Medium", T.ZONE_C_HIGH: "High",
-	T.ZONE_I_LOW: "Low", T.ZONE_I_MED: "Medium", T.ZONE_I_HIGH: "High",
+	T.ZONE_I_LOW: "Agriculture", T.ZONE_I_MED: "Medium", T.ZONE_I_HIGH: "High",
 	T.POWER_COAL: "Coal Plant", T.POWER_WIND: "Wind Turbine", T.POWER_NUCLEAR: "Nuclear Plant",
 	T.WATER_PUMP: "Water Pump", T.WATER_TOWER: "Water Tower",
 	T.POLICE: "Police", T.FIRE_STATION: "Fire Station", T.SCHOOL: "School",
@@ -32,10 +32,7 @@ var income_label: Label
 var expenses_label: Label
 var net_label: Label
 var date_label: Label
-var pop_label: Label
-var jobs_label: Label
-var power_label: Label
-var water_label: Label
+var population_chart: PopulationChart
 var speed_buttons: Array[Button] = []
 var speed_group := ButtonGroup.new()
 
@@ -190,17 +187,9 @@ func _build_top_bar() -> void:
 	date_label.custom_minimum_size.x = 104
 	row.add_child(date_label)
 	row.add_child(_vsep())
-	pop_label = _label("Pop 0", 13)
-	row.add_child(pop_label)
-	jobs_label = _label("Jobs 0", 13)
-	row.add_child(jobs_label)
+	population_chart = PopulationChart.new()
+	row.add_child(population_chart)
 	row.add_child(_vsep())
-	power_label = _label("Power 0/0", 13)
-	power_label.tooltip_text = "Power demand / supply. Click Utilities for the full picture."
-	row.add_child(power_label)
-	water_label = _label("Water 0/0", 13)
-	water_label.tooltip_text = "Water demand / supply. Click Utilities for the full picture."
-	row.add_child(water_label)
 	var gauge := RCIGauge.new()
 	row.add_child(gauge)
 
@@ -306,7 +295,12 @@ func _tool_tooltip(t: int) -> String:
 			s += "\nCoverage radius %d tiles" % def["radius"]
 		return s
 	if BuildingDefs.tool_is_zone(t):
-		return "%s\n$%d per tile. Lots must be within %d tiles of a road, and need power and water to develop." % [name, BuildingDefs.tool_cost(t), Constants.ACCESS_DEPTH]
+		var zd: Array = BuildingDefs.TOOL_ZONE[t]
+		var limits := Constants.block_limits(zd[0], zd[1])
+		var shape := "%d tiles deep" % limits.x
+		if limits.y > 0:
+			shape = "%d x %d tiles" % [limits.x, limits.y]
+		return "%s\n$%d per tile. Service roads are laid automatically so no block exceeds %s.\nLots need power and water to develop." % [name, BuildingDefs.tool_cost(t), shape]
 	match t:
 		T.BULLDOZE: return "Bulldoze\nRemoves buildings, development, rubble, trees or empty zones. $%d per tile." % BuildingDefs.BULLDOZE_COST
 		T.DEZONE: return "De-zone\nRemoves zoning from undeveloped lots. Free."
@@ -435,12 +429,7 @@ func _refresh_stats() -> void:
 	expenses_label.text = "-$%s" % _fmt(expenses)
 	net_label.text = "net %s$%s" % ["+" if net >= 0 else "-", _fmt(absi(net))]
 	net_label.add_theme_color_override("font_color", MONEY_IN if net >= 0 else MONEY_OUT)
-	pop_label.text = "Pop %s" % _fmt(GameState.population)
-	jobs_label.text = "Jobs %s" % _fmt(GameState.jobs_total)
-	power_label.text = "Power %d/%d" % [int(GameState.power_demand), int(GameState.power_supply)]
-	power_label.add_theme_color_override("font_color", Color(1, 0.5, 0.4) if GameState.power_demand > GameState.power_supply else Color(1, 1, 1))
-	water_label.text = "Water %d/%d" % [int(GameState.water_demand), int(GameState.water_supply)]
-	water_label.add_theme_color_override("font_color", Color(1, 0.5, 0.4) if GameState.water_demand > GameState.water_supply else Color(1, 1, 1))
+	population_chart.queue_redraw()
 
 
 func _refresh_speed(s: int) -> void:

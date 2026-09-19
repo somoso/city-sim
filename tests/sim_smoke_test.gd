@@ -14,6 +14,37 @@ func check(cond: bool, msg: String) -> void:
 		print("ok: " + msg)
 
 
+## Bounding box of the biggest contiguous block of one zone, ignoring roads between them.
+func _largest_block(grid: CityGrid, zone: int) -> Vector2i:
+	var seen := {}
+	var best := Vector2i.ZERO
+	for start in range(grid.size):
+		if grid.zone_type[start] != zone or seen.has(start):
+			continue
+		var stack := PackedInt32Array([start])
+		seen[start] = true
+		var minx := grid.x_of(start)
+		var maxx := minx
+		var miny := grid.y_of(start)
+		var maxy := miny
+		while stack.size() > 0:
+			var cur := stack[stack.size() - 1]
+			stack.resize(stack.size() - 1)
+			minx = mini(minx, grid.x_of(cur))
+			maxx = maxi(maxx, grid.x_of(cur))
+			miny = mini(miny, grid.y_of(cur))
+			maxy = maxi(maxy, grid.y_of(cur))
+			for n in grid.neighbors4(cur):
+				if not seen.has(n) and grid.zone_type[n] == zone:
+					seen[n] = true
+					stack.append(n)
+		var w := maxx - minx + 1
+		var h := maxy - miny + 1
+		if w * h > best.x * best.y:
+			best = Vector2i(w, h)
+	return best
+
+
 func _find_land_rect(grid: CityGrid, w: int, h: int) -> Vector2i:
 	for y in range(0, grid.height - h):
 		for x in range(0, grid.width - w):
@@ -95,26 +126,31 @@ func _ready() -> void:
 			zoned += 1
 	check(zoned > 40, "zones placed (%d)" % zoned)
 
-	# Zoning far from any road must be refused, and the preview must agree.
-	var far_reach := tools.zone_reachability(Constants.Tool.ZONE_R_LOW, ox + 2, oy + 13, ox + 6, oy + 15)
-	var far_ok := 0
-	for v in far_reach.values():
-		if v:
-			far_ok += 1
-	check(far_reach.size() > 0 and far_ok == 0, "lots far from roads are unreachable in preview (%d/%d)" % [far_ok, far_reach.size()])
-	var far_placed := tools.apply_area(Constants.Tool.ZONE_R_LOW, ox + 2, oy + 13, ox + 6, oy + 15)
-	check(far_placed == 0, "zone tool skipped unreachable lots (%d placed)" % far_placed)
-	# Two rows next to a road are fine: row 1 touches it, row 2 reaches through row 1.
-	var near_reach := tools.zone_reachability(Constants.Tool.ZONE_C_LOW, ox + 12, oy + 10, ox + 14, oy + 11)
-	var near_ok := 0
-	for v in near_reach.values():
-		if v:
-			near_ok += 1
-	check(near_ok == near_reach.size() and near_ok > 0, "lots within two tiles of a road are reachable (%d)" % near_ok)
+	# Zoning away from a road now lays the service roads instead of refusing the lots.
+	var far_x := ox + 1
+	var far_y := oy + 13
+	var plan := tools.plan_zone_roads(Constants.Tool.ZONE_R_LOW, far_x, far_y, far_x + 6, far_y + 5)
+	check(plan["roads"].size() > 0, "a zone away from a road plans service roads (%d)" % plan["roads"].size())
+	check(plan["lots"].size() > 0, "and still plans lots (%d)" % plan["lots"].size())
+	var placed := tools.apply_area(Constants.Tool.ZONE_R_LOW, far_x, far_y, far_x + 6, far_y + 5)
+	check(placed > 0, "the far district was placed (%d tiles)" % placed)
+	var unserved := 0
 	for i in range(grid.size):
 		if grid.zone_type[i] != Constants.Zone.NONE and grid.road_access[i] == 0:
-			check(false, "a zoned lot has no road access after zoning")
-			break
+			unserved += 1
+	check(unserved == 0, "every zoned lot has road access after auto-roads (%d without)" % unserved)
+
+	# Commercial blocks are capped at 2 x 5, so a long strip gets a cross street.
+	var com_block := _largest_block(grid, Constants.Zone.COM)
+	check(mini(com_block.x, com_block.y) <= 2 and maxi(com_block.x, com_block.y) <= 5,
+		"largest commercial block is within 2x5 (got %dx%d)" % [com_block.x, com_block.y])
+
+	# Farmland reaches four tiles from a road instead of two.
+	check(Constants.access_depth(Constants.Zone.IND, 1) == 4, "agriculture reaches 4 tiles")
+	check(Constants.access_depth(Constants.Zone.RES, 1) == 2, "other zones still reach 2")
+	check(Constants.zone_label(Constants.Zone.IND, 1) == "Agricultural", "low industrial is labelled agricultural")
+	check(Constants.block_limits(Constants.Zone.COM, 1) == Vector2i(2, 5), "commercial block limit is 2x5")
+	check(Constants.block_limits(Constants.Zone.IND, 1) == Vector2i(8, 0), "agricultural blocks may run 8 deep")
 
 	var funds_before := GameState.funds
 	for m in range(60):
@@ -147,6 +183,12 @@ func _ready() -> void:
 		check(Utilities.tile_power_use(grid, net_tile) > 0.0, "a developed lot draws power (%.0f)" % Utilities.tile_power_use(grid, net_tile))
 		var stats: Dictionary = GameState.power_networks[grid.power_net[net_tile]]
 		check(stats["supply"] > 0.0, "its network reports a supply (%.0f)" % stats["supply"])
+
+	# The top-bar graph needs residents and the employed share of them.
+	check(GameState.employed <= GameState.jobs_total, "employed never exceeds the number of jobs (%d vs %d)" % [GameState.employed, GameState.jobs_total])
+	check(GameState.employed <= GameState.population / 2, "employed never exceeds the working-age population")
+	check(GameState.employed > 0, "some residents hold jobs (%d)" % GameState.employed)
+	check(GameState.population_history.size() == GameState.employed_history.size(), "population and employed history stay in step")
 
 	# Ten years of utilisation history feed the graphs, capped at HISTORY_MONTHS.
 	check(GameState.power_demand_history.size() > 12, "power history recorded (%d months)" % GameState.power_demand_history.size())
